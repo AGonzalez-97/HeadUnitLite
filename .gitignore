@@ -1,0 +1,31 @@
+# Build outputs and caches
+.gradle/
+build/
+.kotlin/
+.cxx/
+.idea/
+*.iml
+local.properties
+*.apk
+*.aab
+*.oat
+
+# Signing and credentials: never commit
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+.env
+.env.*
+!.env.example
+*.pk8
+*.p7b
+offline-mfi/
+carplay-auth/
+tools/github_token.txt
+.token
+
+# Local reports and tooling
+informes/
+.atl/
+.codebase-memory/

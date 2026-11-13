@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Seguridad de red (AUD-002).
+  - Las APIs (clima, directorio de radios, reproductores oficiales) van SIEMPRE cifradas.
+  - Muchas radios argentinas transmiten solo por HTTP, y el directorio puede devolver
+    enlaces HTTP de cualquier emisora; por eso el audio en vivo admite HTTP.
+    Riesgo aceptado: es audio público, no se envían datos del usuario.
+  - Se confía en los certificados del sistema y, además, en las raíces de Let's Encrypt
+    (ISRG Root X1 y X2, v0.42.0): Android 7.1 no tiene ISRG Root X2 y algunos servidores
+    (OSRM) fallaban con "Handshake failed". Son certificados públicos, no claves.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/isrg_root_x1" />
+            <certificates src="@raw/isrg_root_x2" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">open-meteo.com</domain>
+        <domain includeSubdomains="true">radio-browser.info</domain>
+        <domain includeSubdomains="true">cienradios.com</domain>
+        <domain includeSubdomains="true">openstreetmap.org</domain>
+        <!-- v0.75.0: búsqueda y rutas con TomTom (antes Nominatim, Photon, OSRM y FOSSGIS) -->
+        <domain includeSubdomains="true">tomtom.com</domain>
+        <!-- v0.76.0: destinos desde el celular -->
+        <domain includeSubdomains="true">ntfy.sh</domain>
+        <domain includeSubdomains="true">openfreemap.org</domain>
+        <domain includeSubdomains="true">spotify.com</domain>
+    </domain-config>
+</network-security-config>

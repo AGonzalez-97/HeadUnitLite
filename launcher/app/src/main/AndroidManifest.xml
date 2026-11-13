@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- v0.81.0: instalar actualizaciones descargadas desde Ajustes → Sistema (con verificación de firma) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Saber cuándo vuelve el Wi-Fi para reconectar la radio y el clima -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Prueba completa: guardar el informe .txt en Descargas (Android 9 o menos; desde 10 no hace falta) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- La radio mantiene la CPU y el Wi-Fi activos mientras suena -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- OBD2: conectarse al lector ELM327 emparejado (Android 11 o menos / Android 12 o más) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- v0.73.0: apagar y prender el Bluetooth para destrabar el lector OBD2 (Android 7 a 11) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <queries>
+        <package android:name="com.spotify.music" />
+        <!-- Sintonizador FM de la radio NWD (v0.51.0) -->
+        <package android:name="com.nwd.radio.service" />
+        <!-- Cajón de apps: ver qué apps tienen ícono (Android 11+ lo exige; no es un permiso) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <!-- v0.56.0 (ADR-0012): OnixApp hereda de la App del motor de Android Auto -->
+    <application
+        android:name=".OnixApp"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
+        android:label="Onix Launcher"
+        android:theme="@style/Theme.Onix"
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:replace="android:name,android:label,android:icon,android:theme,android:allowBackup,android:networkSecurityConfig">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Vuelta del inicio de sesión de Spotify (onixlauncher://spotify) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="onixlauncher" android:host="spotify" />
+            </intent-filter>
+        </activity>
+
+        <!-- Para usarlo como pantalla de inicio en el head unit: cambiar enabled a true -->
+        <activity-alias
+            android:name=".HomeAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <service
+            android:name=".MediaListenerService"
+            android:exported="true"
+            android:label="Onix Launcher"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".RadioService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true"
+            tools:replace="android:authorities">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"
+                tools:replace="android:resource" />
+        </provider>
+    </application>
+</manifest>

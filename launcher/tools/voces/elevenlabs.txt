@@ -1,0 +1,29 @@
+# Voces con emoción para el slogan de inicio (v0.70.0), generadas con ElevenLabs por la CI
+# (workflow voces_ia.yml) solo si existe el secreto ELEVENLABS_API_KEY. La clave nunca va al
+# repositorio ni a la app: los audios se generan una vez y quedan en assets/voz/inicio_<id>.ogg.
+#
+# id|voz|modelo|estabilidad|estilo|texto
+#   voz: "biblioteca:<idioma>:<acento>:<género>[:<uso>[:<descripción>]]" busca en la biblioteca pública de ElevenLabs la voz
+#        más usada con esos datos y la agrega a la cuenta; "propia:<nombre>" usa una voz de la cuenta
+#        (las prediseñadas, como George o Daniel).
+#   estabilidad 0–1 (más baja = más expresiva); estilo 0–1 (exageración del estilo).
+#   Todas dicen solo el slogan de Chevrolet, "Find new roads." (pedido del autor, v0.72.0).
+#   "diseno:<género>:<idioma>:<descripción>" crea una voz nueva con el diseño de voces de ElevenLabs
+#   a partir de la descripción (v0.72.0): anda con el plan gratuito, que no deja usar la biblioteca
+#   por la API (HTTP 402). Las voces diseñadas son nuevas: no imitan a ninguna persona.
+#   "propia:<nombre>>…": si en la cuenta hay una voz con ese nombre (creada a mano en la web de
+#   ElevenLabs con el diseño de voces, que en la web sí es gratis), se usa esa; si no, lo que sigue.
+#   Pasos en docs/VOCES_IA.md.
+#   "comercial": locutor de publicidad estadounidense de voz grave (estilo de comercial de autos).
+#
+# Frases extra: cada voz también dice estas (assets/voz/<nombre>_<id>.ogg). El aviso de luces usa
+# la voz elegida en Diagnóstico (v0.72.0).
+# Todas las indicaciones del GPS y los avisos (tools/voces/frases.txt) con la voz Comercial (v0.72.3) y tono serio,
+# en assets/voz/ia_<clave>.ogg; la app las prefiere a las de Piper (v0.72.2, pedido del autor).
+@@frases|tools/voces/frases.txt|comercial
+# Los avisos se graban con tono serio (estabilidad alta, sin estilo), no con la energía del slogan.
+@luces|Atención. Las luces están apagadas. Encendelas para un viaje más seguro.
+comercial|propia:Onix Comercial>diseno:male:en:Deep, warm and confident American male announcer for a car commercial, cinematic, slow and powerful delivery|eleven_multilingual_v2|0.40|0.60|Find new roads.
+ar_locutor|propia:Onix Locutor AR>diseno:male:es:Argentine man from Buenos Aires with a strong rioplatense Spanish accent, energetic and enthusiastic FM radio announcer|eleven_multilingual_v2|0.30|0.75|Find new roads!
+ar_locutora|propia:Onix Locutora AR>diseno:female:es:Argentine woman from Buenos Aires with a rioplatense Spanish accent, warm and energetic radio host|eleven_multilingual_v2|0.30|0.75|Find new roads!
+asistente|propia:George|eleven_multilingual_v2|0.55|0.35|Find new roads.

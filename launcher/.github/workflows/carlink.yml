@@ -1,0 +1,98 @@
+# CarLink al día (v0.74.0, pedido del autor: "que no pase lo de hoy, que quedamos sin CarPlay").
+# Todos los días revisa la última release de CarLink. Si hay una versión nueva, o si la fijada en
+# tools/carlink.properties dejó de estar publicada (AUD-068), verifica el APK nuevo con la huella de su .sha256,
+# confirma que trae assets/offline-mfi/ (solo lista el contenido: la identidad no se extrae acá),
+# fija la versión nueva en tools/carlink.properties y compila. Si el código de los motores (vendor/, carlink-core/)
+# cambió de versión, abre un aviso (issue) para actualizarlos con Claude: eso no se hace solo.
+name: CarLink al día
+
+on:
+  schedule:
+    - cron: '23 10 * * *'   # 07:23 en Tucumán
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: carlink-al-dia
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Comparar con la última release de CarLink
+        id: ver
+        run: |
+          pinned=$(grep -oP '^CARLINK_VERSION=\K[0-9.]+' tools/carlink.properties)
+          latest=$(gh api repos/F-e-n-y-x/CarLink/releases/latest --jq .tag_name | sed 's/^v//')
+          base=https://github.com/F-e-n-y-x/CarLink/releases/download
+          code=$(curl -sSIL -o /dev/null -w '%{http_code}' "$base/v$pinned/CarLink-$pinned.apk" || echo 0)
+          echo "Fijada: $pinned (descarga: HTTP $code) · última: $latest"
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ -n "$latest" ] && { [ "$latest" != "$pinned" ] || [ "$code" != "200" ]; }; then
+            echo "cambiar=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      # AUD-073 (v0.79.5): la versión sale del tag de un repositorio de terceros. Se pasa por env
+      # (nunca con ${{ }} dentro del script) y tiene que tener formato de versión antes de usarse.
+      - name: Verificar el APK nuevo y fijarlo
+        if: steps.ver.outputs.cambiar == 'si'
+        env:
+          LATEST: ${{ steps.ver.outputs.latest }}
+        run: |
+          v="$LATEST"
+          if ! [[ "$v" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; then
+            echo "::error::CarLink: la versión publicada no tiene formato de versión; no se cambia nada"
+            exit 1
+          fi
+          base=https://github.com/F-e-n-y-x/CarLink/releases/download/v$v
+          sha=$(curl -sSL "$base/CarLink-$v.apk.sha256" | awk '{print $1}')
+          curl -sSL -o "$RUNNER_TEMP/c.apk" "$base/CarLink-$v.apk"
+          got=$(sha256sum "$RUNNER_TEMP/c.apk" | awk '{print $1}')
+          if [ -z "$sha" ] || [ "$got" != "$sha" ]; then
+            echo "::error::CarLink $v: la huella no coincide con su .sha256 ($got / $sha); no se cambia nada"
+            exit 1
+          fi
+          n=$(unzip -l "$RUNNER_TEMP/c.apk" | grep -c 'assets/offline-mfi/' || true)
+          rm -f "$RUNNER_TEMP/c.apk"
+          if [ "$n" -lt 2 ]; then
+            echo "::error::CarLink $v no trae assets/offline-mfi/ ($n archivos); no se cambia nada"
+            exit 1
+          fi
+          # En un archivo común: el token de la CI no puede cambiar archivos de workflows
+          sed -i -E "s/^(CARLINK_VERSION=).*/\1$v/; s/^(CARLINK_APK_SHA256=).*/\1$sha/" tools/carlink.properties
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "ci: identidad de CarPlay desde CarLink $v (automático, huella $sha)"
+          git push
+          # Un push hecho con el token de la CI no dispara otra compilación: se pide a mano
+          gh workflow run build.yml --ref "${GITHUB_REF_NAME}"
+          echo "::notice::CarPlay: identidad fijada en CarLink $v y compilación pedida"
+
+      - name: Avisar si hay motores nuevos
+        if: steps.ver.outputs.latest != ''
+        env:
+          LATEST: ${{ steps.ver.outputs.latest }}
+        run: |
+          v="$LATEST"
+          if ! [[ "$v" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; then
+            echo "::error::CarLink: la versión publicada no tiene formato de versión; no se abre el aviso"
+            exit 1
+          fi
+          have=$(grep -oP 'F-e-n-y-x/CarLink \K[0-9.]+' settings.gradle.kts | head -1)
+          if [ "$v" != "$have" ]; then
+            title="CarLink $v disponible: actualizar los motores de Android Auto y CarPlay"
+            if [ -z "$(gh issue list --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
+              gh issue create --title "$title" --body "Onix tiene el código de los motores de CarLink $have (vendor/ y carlink-core/). Salió CarLink $v: pedirle a Claude que actualice los motores (docs/tasks/motores-actualizar.md). La identidad de CarPlay se actualiza sola con este mismo aviso diario." || echo "::warning::no se pudo abrir el aviso"
+            fi
+          fi

@@ -1,0 +1,38 @@
+name: Rehacer notas de releases
+
+# v0.68.1: vuelve a armar la descripción de releases ya publicadas con la nota actual de
+# docs/releases/ (por ejemplo, después de corregir su redacción). Conserva el resultado real
+# de la compilación que ya tenía cada release; no toca el APK ni los archivos.
+on:
+  workflow_dispatch:
+    inputs:
+      builds:
+        description: "Números de build separados por espacios (por ejemplo: 105 106 107)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  notas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Rehacer notas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILDS: ${{ inputs.builds }}
+        run: |
+          for n in $BUILDS; do
+            case "$n" in (*[!0-9]*|'') echo "::error::Build inválido: $n"; exit 1;; esac
+            tag="build-$n"
+            name=$(gh release view "$tag" --json name -q .name)
+            version=$(echo "$name" | sed -n 's/.*v\([0-9][0-9.]*\) (build.*/\1/p')
+            [ -n "$version" ] || { echo "::warning::$tag: no se encontró la versión en \"$name\""; continue; }
+            gh release view "$tag" --json body -q .body \
+              | awk '/^## Resultado de la compilación/{f=1;next} f&&/^- /{print} f&&/^\*\*/{exit}' > resultados.md
+            [ -s resultados.md ] || { echo "::warning::$tag: sin resultados de la compilación; no se cambia"; continue; }
+            bash .github/scripts/release_notes.sh "$version" "$n" resultados.md > notas.md
+            gh release edit "$tag" --notes-file notas.md
+            echo "= $tag (v$version) rehecha"
+          done

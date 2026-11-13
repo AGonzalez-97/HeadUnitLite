@@ -1,0 +1,7 @@
+Voces del inicio generadas con ElevenLabs (https://elevenlabs.io), plan gratuito: uso personal,
+no comercial, con atribución a ElevenLabs. Voces usadas:
+
+asistente (propia:George): George - Warm, Captivating Storyteller (ElevenLabs)
+comercial (propia:Onix Comercial>diseno:male:en:Deep, warm and confident American male announcer for a car commercial, cinematic, slow and powerful delivery): Onix Comercial (ElevenLabs)
+ar_locutor (propia:Onix Locutor AR>diseno:male:es:Argentine man from Buenos Aires with a strong rioplatense Spanish accent, energetic and enthusiastic FM radio announcer): Onix Locutor AR (ElevenLabs)
+ar_locutora (propia:Onix Locutora AR>diseno:female:es:Argentine woman from Buenos Aires with a rioplatense Spanish accent, warm and energetic radio host): Onix Locutora AR (ElevenLabs)

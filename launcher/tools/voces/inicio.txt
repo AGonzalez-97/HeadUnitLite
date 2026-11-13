@@ -1,0 +1,14 @@
+# Voces para elegir del slogan de la presentación (v0.69.0). Las genera la CI con Piper
+# (workflow voces.yml) en app/src/main/assets/voz/inicio_<id>.ogg; se eligen en Diagnóstico.
+# La ficha (licencia) de cada modelo queda en app/src/main/assets/voz/LEEME_inicio.txt.
+#
+# id|modelo (ruta en rhasspy/piper-voices)|texto|velocidad (length_scale)|tono (1 = igual, <1 más grave)|efecto
+#   efecto: locutor = graves, presencia, compresión y un poco de sala, como un locutor de radio
+#           epico   = locutor más grave y con más eco, para una presentación
+#           limpio  = solo volumen parejo
+locutor|en/en_US/ryan/high/en_US-ryan-high|Find new roads!|1.05|0.96|locutor
+epico|en/en_US/ryan/high/en_US-ryan-high|Find... new... roads.|1.2|0.9|epico
+locutor2|en/en_US/joe/medium/en_US-joe-medium|Find new roads!|1.05|0.95|locutor
+britanico|en/en_GB/alan/medium/en_GB-alan-medium|Find new roads!|1.05|0.96|locutor
+grave|en/en_US/norman/medium/en_US-norman-medium|Find new roads!|1.1|0.92|locutor
+daniela|es/es_AR/daniela/high/es_AR-daniela-high|¡Fáind niú róuds!|0.95|1|locutor

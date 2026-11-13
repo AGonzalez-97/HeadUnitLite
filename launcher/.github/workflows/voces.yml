@@ -1,0 +1,102 @@
+name: Voces grabadas
+
+# v0.61.0: genera las voces de los avisos y de la navegación con Piper (MIT) y las guarda en
+# app/src/main/assets/voz/. Así suenan aunque la radio no tenga TextToSpeech. Corre a pedido
+# o cuando cambia tools/voces/frases.txt. Imprime la ficha (licencia) del modelo de voz en el log.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths: [ 'tools/voces/frases.txt', 'tools/voces/inicio.txt', '.github/workflows/voces.yml' ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voces-en-assets
+  cancel-in-progress: false
+
+jobs:
+  voces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Piper y el modelo de voz
+        run: |
+          pip install piper-tts==1.2.0
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es
+          voice=""
+          # AUD-060 (v0.64.1): solo la voz argentina (licencia CC BY-SA 4.0 registrada). Antes, si no
+          # bajaba, usaba otra voz con otra licencia sin avisar; ahora el workflow se frena.
+          for v in es_AR/daniela/high/es_AR-daniela-high; do
+            name=$(basename "$v")
+            if curl -fsSL -o "$name.onnx" "$base/$v.onnx" && curl -fsSL -o "$name.onnx.json" "$base/$v.onnx.json"; then
+              curl -fsSL -o MODEL_CARD "$base/$(dirname "$v")/MODEL_CARD" || true
+              voice="$name"; break
+            fi
+          done
+          [ -n "$voice" ] || { echo "::error::No se pudo bajar ningún modelo de voz"; exit 1; }
+          echo "VOICE=$voice" >> "$GITHUB_ENV"
+          echo "::notice::Voz: $voice"
+          echo "===== MODEL_CARD ($voice) ====="; cat MODEL_CARD || echo "(sin ficha)"
+      - name: Generar las frases
+        run: |
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          out=app/src/main/assets/voz
+          mkdir -p "$out"
+          grep -v '^#' tools/voces/frases.txt | grep '|' | while IFS='|' read -r key text; do
+            echo "$text" | piper -m "$VOICE.onnx" -f "/tmp/$key.wav" --length_scale 0.95
+            ffmpeg -loglevel error -y -i "/tmp/$key.wav" -ac 1 -ar 22050 -c:a libvorbis -q:a 3 "$out/$key.ogg"
+          done
+          printf 'Voz: %s (Piper). Ficha del modelo:\n\n' "$VOICE" > "$out/LEEME.txt"
+          cat MODEL_CARD >> "$out/LEEME.txt" || true
+          ls -la "$out"; du -sh "$out"
+      # v0.69.0: varias voces para el slogan de la presentación, con efecto de locutor de radio.
+      # Cada modelo se baja de rhasspy/piper-voices (v1.0.0 y, si no está, main); si alguno no baja,
+      # se avisa y se sigue con los otros (son opciones, no reemplazan a nadie). La ficha de cada
+      # modelo (licencia) se guarda en LEEME_inicio.txt.
+      - name: Voces del inicio (para elegir en Diagnóstico)
+        run: |
+          out=app/src/main/assets/voz
+          card="$out/LEEME_inicio.txt"
+          printf 'Voces del slogan de la presentación (Piper). Fichas de cada modelo:\n' > "$card"
+          grep -v '^#' tools/voces/inicio.txt | grep '|' | while IFS='|' read -r id model text speed pitch fx; do
+            name=$(basename "$model")
+            if [ ! -f "$name.onnx" ]; then
+              ok=""
+              for ref in v1.0.0 main; do
+                b=https://huggingface.co/rhasspy/piper-voices/resolve/$ref
+                if curl -fsSL -o "$name.onnx" "$b/$model.onnx" && curl -fsSL -o "$name.onnx.json" "$b/$model.onnx.json"; then
+                  curl -fsSL -o "$name.card" "$b/$(dirname "$model")/MODEL_CARD" || echo "(sin ficha)" > "$name.card"
+                  ok=1; break
+                fi
+              done
+              if [ -z "$ok" ]; then echo "::warning::Inicio: no se pudo bajar $name (se saltea $id)"; rm -f "$name.onnx"; continue; fi
+              printf '\n===== %s =====\n' "$name" >> "$card"; cat "$name.card" >> "$card"
+            fi
+            echo "$text" | piper -m "$name.onnx" -f "/tmp/inicio_$id.wav" --length_scale "$speed" --noise_scale 0.8 --noise_w 1.0
+            case "$fx" in
+              epico)  eq="equalizer=f=100:t=q:w=1.2:g=6,equalizer=f=3000:t=q:w=1.5:g=3,acompressor=threshold=0.12:ratio=5:attack=5:release=150:makeup=2,aecho=0.8:0.55:60|120:0.25|0.15" ;;
+              limpio) eq="anull" ;;
+              *)      eq="equalizer=f=110:t=q:w=1.2:g=5,equalizer=f=3000:t=q:w=1.5:g=3,acompressor=threshold=0.12:ratio=4:attack=5:release=120:makeup=2,aecho=0.8:0.5:45|90:0.18|0.10" ;;
+            esac
+            ffmpeg -loglevel error -y -i "/tmp/inicio_$id.wav" \
+              -af "aresample=22050,asetrate=22050*$pitch,aresample=22050,$eq,apad=pad_dur=0.4,loudnorm=I=-14:TP=-1.5:LRA=7" \
+              -ac 1 -ar 22050 -c:a libvorbis -q:a 4 "$out/inicio_$id.ogg"
+            echo "::notice::Inicio: $id con $name"
+          done
+          ls -la "$out"/inicio_*.ogg
+
+      - name: Guardar en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/assets/voz
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git commit -m "voces: generadas con Piper ($VOICE)"
+          # v0.77.0: las dos generaciones de voces pueden correr juntas; se reintenta sobre lo último
+          for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin HEAD:${GITHUB_REF_NAME} && break; sleep 5; done

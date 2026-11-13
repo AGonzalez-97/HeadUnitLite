@@ -1,0 +1,37 @@
+# Voces grabadas de Onix (v0.61.0). Una por línea: clave|texto. Las genera .github/workflows/voces.yml
+# con Piper en app/src/main/assets/voz/<clave>.ogg. Si se agrega una clave, va también en VoiceClips (Voice.kt).
+luces_apagadas|Atención: las luces están apagadas. Encendelas para un viaje más seguro.
+velocidad_alta|Atención: estás pasando la velocidad máxima que elegiste.
+motor_recalentado|Atención: motor recalentado. Pará en un lugar seguro y apagá el motor.
+bateria_no_carga|Atención: la batería no carga. Revisá el alternador o la correa.
+voltaje_alto|Atención: voltaje demasiado alto. Revisá el regulador del alternador.
+bateria_baja|Atención: batería baja. Puede costar arrancar el auto.
+recalculando|Recalculando.
+llegaste|Llegaste a destino.
+en_50|En cincuenta metros,
+en_100|En cien metros,
+en_150|En ciento cincuenta metros,
+en_200|En doscientos metros,
+en_250|En doscientos cincuenta metros,
+en_300|En trescientos metros,
+girar_izq|girá a la izquierda.
+girar_der|girá a la derecha.
+leve_izq|doblá levemente a la izquierda.
+leve_der|doblá levemente a la derecha.
+cerrado_izq|girá cerrado a la izquierda.
+cerrado_der|girá cerrado a la derecha.
+giro_u|hacé un giro en U.
+derecho|seguí derecho.
+salir|salí hacia el destino.
+rotonda|en la rotonda, tomá la salida.
+rotonda_1|en la rotonda, tomá la primera salida.
+rotonda_2|en la rotonda, tomá la segunda salida.
+rotonda_3|en la rotonda, tomá la tercera salida.
+rotonda_4|en la rotonda, tomá la cuarta salida.
+rotonda_5|en la rotonda, tomá la quinta salida.
+bifurcacion_izq|en la bifurcación, mantenete a la izquierda.
+bifurcacion_der|en la bifurcación, mantenete a la derecha.
+incorporate|incorporate.
+# v0.65.0: slogan de la presentación, escrito para que la voz argentina lo diga en inglés
+inicio|Fáind niú róuds.
+nafta_baja|Atención: queda poca nafta. ¿Busco una estación en el camino?

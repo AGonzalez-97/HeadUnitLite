@@ -1,0 +1,41 @@
+name: Lint completo
+
+# v0.60.1 (AUD-047): con los motores de Android Auto y CarPlay adentro, el lint completo tarda
+# ~25 min. Corre aparte para no frenar la publicación del APK: los lunes y a pedido.
+# NewApi se revisa igual en cada compilación (lint rápido de la release, build.yml).
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint completo
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Lint
+        # AUD-059 (v0.64.1): solo el código de Onix (el motor de CarLink es de terceros) y más memoria
+        run: ./gradlew :app:lintDebug -Ponix.lintSoloApp=true -Dorg.gradle.jvmargs="-Xmx6g -XX:+UseParallelGC" --stacktrace
+      - name: Resumen
+        if: always()
+        run: |
+          python3 .github/scripts/lint_summary.py app/build/reports/lint-results-debug.xml | tee lint.txt >> "$GITHUB_STEP_SUMMARY"
+          cat lint.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint
+          path: |
+            lint.txt
+            app/build/reports/lint-results-debug.xml
+          retention-days: 14

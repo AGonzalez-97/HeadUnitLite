@@ -1,0 +1,43 @@
+name: Voces con IA (ElevenLabs)
+
+# v0.70.0: voces con emoción para el slogan de inicio. Solo corre si existe el secreto
+# ELEVENLABS_API_KEY (cuenta del autor; plan gratuito, uso personal). La clave no se imprime ni
+# queda en el APK: los audios se generan acá y se guardan en app/src/main/assets/voz/.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths: [ 'tools/voces/frases.txt', 'tools/voces/elevenlabs.txt', 'tools/voces/elevenlabs.py', '.github/workflows/voces_ia.yml' ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voces-en-assets
+  cancel-in-progress: false
+
+jobs:
+  voces_ia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generar con ElevenLabs
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          python3 tools/voces/elevenlabs.py tools/voces/elevenlabs.txt app/src/main/assets/voz
+          ls -la app/src/main/assets/voz/ | grep -E "inicio|LEEME" || true
+      - name: Guardar en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/assets/voz
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git commit -m "voces: generadas con ElevenLabs"
+          # v0.77.0: las dos generaciones de voces pueden correr juntas; se reintenta sobre lo último
+          for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin HEAD:${GITHUB_REF_NAME} && break; sleep 5; done

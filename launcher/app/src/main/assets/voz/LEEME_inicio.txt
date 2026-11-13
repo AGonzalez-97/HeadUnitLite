@@ -1,0 +1,71 @@
+Voces del slogan de la presentación (Piper). Fichas de cada modelo:
+
+===== en_US-ryan-high =====
+# Model card for ryan (high)
+
+* Language: en_US (English, United States)
+* Speakers: 1
+* Quality: high
+* Samplerate: 22,050Hz
+
+## Dataset
+
+* URL: https://www.kaggle.com/datasets/roholazandie/ryanspeech
+* License: CC BY-NC-SA 4.0
+
+## Training
+
+Trained from scratch.
+
+===== en_US-joe-medium =====
+# Model card for joe (medium)
+
+* Language: en_US (English, United States)
+* Speakers: 1
+* Quality: medium
+* Samplerate: 22,050Hz
+
+## Dataset
+
+* URL: https://github.com/NabuCasa/voice-datasets
+* License: CC0
+
+## Training
+
+Finetuned from U.S. English lessac voice (medium quality).
+
+===== en_GB-alan-medium =====
+# Model card for alan (medium)
+
+* Language: en_GB (English, Great Britain)
+* Speakers: 1
+* Quality: medium
+* Samplerate: 22,050Hz
+
+## Dataset
+
+* URL: https://github.com/MycroftAI/mimic3-voices/blob/master/voices/en_UK/apope_low
+* License: See URL
+
+## Training
+
+Finetuned from U.S. English lessac voice (medium quality).
+
+===== en_US-norman-medium =====
+# Model card for norman (medium)
+
+* Language: en_US (English, United States)
+* Speakers: 1
+* Quality: medium
+* Samplerate: 22,050Hz
+
+## Dataset
+
+* URL: https://librivox.org
+* License: public domain
+
+## Training
+
+See: https://brycebeattie.com/files/tts/
+
+US English male voice. Single Speaker. Trained from scratch on medium quality settings for 1200 epochs. I put together the dataset, which ended up with about 15.5 hours of recordings. All recordings came from LibriVox.org. I forgot to save the ckpt file on this one, sorry.

@@ -1,0 +1,27 @@
+# Prueba de búsqueda y rutas con TomTom (v0.75.0): a pedido, con las direcciones que se escriban.
+name: Prueba de TomTom
+
+on:
+  workflow_dispatch:
+    inputs:
+      direcciones:
+        description: 'Direcciones separadas por ;'
+        default: '9 de julio 550, Tafí Viejo; Av. Adolfo de la Vega 473'
+
+permissions:
+  contents: read
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Buscar y trazar rutas
+        env:
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          DIRECCIONES: ${{ inputs.direcciones }}
+        run: |
+          IFS=';' read -ra Q <<< "$DIRECCIONES"
+          args=(); for q in "${Q[@]}"; do q="$(echo "$q" | xargs)"; [ -n "$q" ] && args+=("$q"); done
+          python3 tools/tomtom/prueba.py "${args[@]}"

@@ -1,0 +1,288 @@
+name: Compilar APK
+
+on:
+  push:
+    branches: [ main ]
+    # Cambios solo de documentación o de los scripts de imágenes: no compilan
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+# AUD-074 (v0.79.5): solo lectura por defecto; solo "publicar" (release y tag) puede escribir.
+permissions:
+  contents: read
+
+# Cuatro trabajos (v0.68.0, ADR-0013): "tests", "app" (APK) y "controles" (capturas) corren en
+# paralelo en máquinas distintas; "publicar" junta todo y arma la release. Si falla un test de
+# lógica, no hay release (aunque el APK haya compilado).
+jobs:
+  tests:
+    name: Tests de lógica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Regla de oro: versión, módulos y permisos documentados en el mismo cambio (ver CLAUDE.md)
+      - name: Documentación al día
+        run: python3 .github/scripts/check_docs.py
+
+      # Verifica que gradle-wrapper.jar sea el oficial y prepara la caché de Gradle
+      - uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      # Bloqueante (AUD-017). Gradle queda abierto entre pasos (daemon) para no recargar el proyecto.
+      # Si falla, las líneas de error de Kotlin/Gradle se publican como avisos de la CI
+      # (se leen desde la API sin descargar el log completo)
+      - name: Tests de lógica
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --tests "com.axel.onixlauncher.logic.*" --stacktrace 2>&1 | tee gradle-logica.log || {
+            grep -E "^e: |error:|FAILED|Exception|What went wrong" -A2 gradle-logica.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
+
+      # Cobertura (v0.63.0): informe de JaCoCo con lo que ya corrieron los tests de lógica.
+      # No frena la compilación: si falla, tests.txt dice "no medida".
+      - name: Cobertura de los tests de lógica
+        continue-on-error: true
+        run: ./gradlew :app:createDebugUnitTestCoverageReport -x testDebugUnitTest --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultados-logica
+          path: |
+            app/build/test-results/testDebugUnitTest
+            app/build/reports/coverage/test/debug/report.xml
+          retention-days: 3
+
+  app:
+    name: APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Documentación al día
+        run: python3 .github/scripts/check_docs.py
+      - uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      # Identidad de CarPlay (v0.57.0, ADR-0012). Nunca está en el repositorio: se arma al compilar.
+      # 1) Si están los secretos CARPLAY_IDENTITY_PK8 y CARPLAY_CERTIFICATE_P7B (base64), se usan.
+      # 2) Si no, se baja el APK público de CarLink (versión en tools/carlink.properties), se verifica su huella SHA-256 (la que
+      #    publica CarLink) y se sacan de ahí assets/offline-mfi/identity.pk8 y certificate.p7b.
+      # 3) Si CarLink borró esa versión (pasó con la 1.0.7, AUD-068), se usa su última release y la
+      #    huella de su archivo .sha256, con un aviso para fijar la versión nueva acá.
+      # Si algo falla, el APK sale igual sin CarPlay (Android Auto anda) y el log lo avisa.
+      - name: Identidad de CarPlay
+        env:
+          CARPLAY_IDENTITY_PK8: ${{ secrets.CARPLAY_IDENTITY_PK8 }}
+          CARPLAY_CERTIFICATE_P7B: ${{ secrets.CARPLAY_CERTIFICATE_P7B }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dir="$RUNNER_TEMP/carplay-auth"
+          mkdir -p "$dir/offline-mfi"
+          if [ -n "$CARPLAY_IDENTITY_PK8" ] && [ -n "$CARPLAY_CERTIFICATE_P7B" ]; then
+            echo "$CARPLAY_IDENTITY_PK8" | base64 -d > "$dir/offline-mfi/identity.pk8"
+            echo "$CARPLAY_CERTIFICATE_P7B" | base64 -d > "$dir/offline-mfi/certificate.p7b"
+            echo "::notice::CarPlay: identidad desde GitHub Secrets"
+          else
+            # Versión y huella en tools/carlink.properties (v0.74.0: las actualiza carlink.yml solo)
+            CARLINK_VERSION=$(grep -oP '^CARLINK_VERSION=\K.+' tools/carlink.properties)
+            CARLINK_APK_SHA256=$(grep -oP '^CARLINK_APK_SHA256=\K.+' tools/carlink.properties)
+            # AUD-068: cada paso dice por qué falla (la descarga, la huella o el contenido del APK)
+            why=""
+            base=https://github.com/F-e-n-y-x/CarLink/releases/download
+            ver="$CARLINK_VERSION"
+            code=$(curl -sSL -o "$RUNNER_TEMP/carlink.apk" -w '%{http_code}' "$base/v$ver/CarLink-$ver.apk" || echo "sin conexión")
+            if [ "$code" = "404" ]; then
+              tag=$(gh api repos/F-e-n-y-x/CarLink/releases/latest --jq .tag_name 2>/dev/null || true)
+              if [ -n "$tag" ]; then
+                ver="${tag#v}"
+                CARLINK_APK_SHA256=$(curl -sSL "$base/$tag/CarLink-$ver.apk.sha256" | awk '{print $1}')
+                code=$(curl -sSL -o "$RUNNER_TEMP/carlink.apk" -w '%{http_code}' "$base/$tag/CarLink-$ver.apk" || echo "sin conexión")
+                echo "::warning::CarPlay: CarLink $CARLINK_VERSION ya no está publicado; se usa $ver con la huella de su .sha256 (se fija solo con el workflow carlink.yml)"
+              fi
+            fi
+            if [ "$code" != "200" ]; then
+              why="la descarga del APK de CarLink respondió $code"
+            else
+              got=$(sha256sum "$RUNNER_TEMP/carlink.apk" | awk '{print $1}')
+              size=$(stat -c %s "$RUNNER_TEMP/carlink.apk")
+              if [ -z "$CARLINK_APK_SHA256" ] || [ "$got" != "$CARLINK_APK_SHA256" ]; then
+                why="la huella del APK de CarLink no coincide (bajó $size bytes, huella $got)"
+              elif ! unzip -o -j "$RUNNER_TEMP/carlink.apk" assets/offline-mfi/identity.pk8 assets/offline-mfi/certificate.p7b -d "$dir/offline-mfi" > /dev/null; then
+                why="el APK de CarLink no trae assets/offline-mfi/ ($(unzip -l "$RUNNER_TEMP/carlink.apk" | grep -c offline-mfi) entradas)"
+              fi
+            fi
+            if [ -n "$why" ]; then
+              echo "::warning::CarPlay: no se pudo armar la identidad ($why); el APK sale sin CarPlay"
+              rm -rf "$dir" "$RUNNER_TEMP/carlink.apk"
+              exit 0
+            fi
+            echo "::notice::CarPlay: identidad desde el APK de CarLink $ver (huella verificada)"
+          fi
+          rm -f "$RUNNER_TEMP/carlink.apk"
+          echo "DIPLAY_AUTH_ASSETS_DIR=$dir" >> "$GITHUB_ENV"
+
+      # Firma desde GitHub Secrets si están cargados (docs/SIGNING.md); si no, keystore.properties
+      - name: Firma desde GitHub Secrets (opcional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ONIX_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "::notice::Firma: GitHub Secrets"
+          else
+            echo "::notice::Firma: app/keystore.properties (secretos no cargados)"
+          fi
+
+      - name: Compilar versión optimizada (release)
+        env:
+          ONIX_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ONIX_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          ONIX_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # v0.75.0: búsqueda y rutas con TomTom (clave del autor; nunca se imprime)
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          # v0.76.0: canal privado de ntfy (destinos desde el celular); nunca se imprime
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          # v0.79.6: Client ID de Spotify (no es un secreto de verdad: PKCE no usa "client secret"); opcional
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          UPDATER_READ_TOKEN: ${{ secrets.UPDATER_READ_TOKEN }}
+        run: |
+          if [ -n "$SPOTIFY_CLIENT_ID" ]; then echo "::notice::Spotify: Client ID cargado (la radio no lo pide)"; else echo "::notice::Spotify: sin Client ID cargado; hay que pegarlo a mano en la radio"; fi
+          if [ -n "$NTFY_TOPIC" ]; then echo "::notice::ntfy: canal cargado"; else echo "::warning::ntfy: falta el secreto NTFY_TOPIC; los destinos desde el celular no van a andar"; fi
+          if [ -n "$TOMTOM_API_KEY" ]; then echo "::notice::TomTom: clave cargada"; else echo "::warning::TomTom: falta el secreto TOMTOM_API_KEY; el buscador no va a andar"; fi
+          ./gradlew :app:assembleRelease --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk onix-launcher.apk
+          # AUD-088 (v0.79.5): mapa de R8, para leer los errores que lleguen del auto (R8 también optimiza).
+          # Pesa ~115 MB; comprimido ~9 MB.
+          gzip -9 -c app/build/outputs/mapping/release/mapping.txt > onix-launcher-mapping.txt.gz || echo "::warning::no se encontró mapping.txt"
+
+      # Si la firma no es la misma de siempre, el APK no se instalaría encima: se frena acá (docs/SIGNING.md)
+      - name: Verificar que la firma es la de siempre
+        run: |
+          bt=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          got=$("$ANDROID_HOME/build-tools/$bt/apksigner" verify --print-certs onix-launcher.apk | grep -m1 "certificate SHA-256 digest" | awk '{print $NF}')
+          want=$(tr -d '[:space:]' < .github/signing-cert.sha256)
+          if [ "$got" = "$want" ]; then
+            echo "::notice::Firma verificada: misma clave de siempre (se instala encima)"
+          else
+            echo "::error::La firma del APK no coincide con la de siempre: no se instalaría encima. Revisá los secretos (docs/SIGNING.md)"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: |
+            onix-launcher.apk
+            onix-launcher-mapping.txt.gz
+          retention-days: 3
+
+  controles:
+    name: Capturas
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      # No bloqueante: las capturas son para revisar la interfaz desde el celular
+      - name: Capturas reales de la pantalla
+        continue-on-error: true
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --tests "*ScreenshotTest*" --stacktrace 2>&1 | tee gradle-capturas.log || {
+            grep -E "^e: |error:|FAILED|What went wrong" -A2 gradle-capturas.log | head -30 | while IFS= read -r l; do echo "::warning::$l"; done
+            exit 1
+          }
+
+      # v0.60.1: el lint completo tarda ~25 min con los motores y frenaba la publicación: pasó a
+      # .github/workflows/lint.yml (semanal y a pedido). NewApi (compatibilidad con Android 7.1)
+      # se sigue revisando en cada compilación con el lint rápido de la release (fatal en
+      # app/build.gradle.kts).
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: controles
+          path: |
+            app/build/screenshots/*.png
+            app/build/test-results/testDebugUnitTest
+          retention-days: 3
+
+  publicar:
+    name: Publicar release
+    needs: [ tests, app ]
+    # Publica si los tests de lógica y el APK salieron bien, aunque fallen las capturas
+    if: ${{ always() && needs.tests.result == 'success' && needs.app.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Versión
+        run: echo "APP_VERSION=$(grep '^version=' version.properties | cut -d= -f2)" >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+
+      - name: Resumen de tests y lint
+        run: |
+          python3 .github/scripts/test_summary.py artefactos/resultados-logica \
+            | tee tests.txt >> "$GITHUB_STEP_SUMMARY"
+          printf '## Lint (Android)\n\nNewApi revisado en esta compilación (lint rápido de la release; si falla, no hay APK).\nEl lint completo corre aparte: workflow "Lint completo" (lint.yml), semanal y a pedido.\n' \
+            | tee lint.txt >> "$GITHUB_STEP_SUMMARY"
+          # AUD-044 (v0.59.0): también al log, para poder leer los resultados reales desde la API
+          echo "===== tests.txt ====="; cat tests.txt; echo "===== lint.txt ====="; cat lint.txt
+
+      # Regla de oro 3 (pedido del autor, 2026-11-04): cada release lleva la descripción de las
+      # mejoras (docs/releases/vX.Y.Z.md) y el resultado real de los tests
+      - name: Notas de la versión
+        run: |
+          {
+            grep -E '^(Tests ejecutados|Exitosos|Fallidos|Cobertura|Estado):' tests.txt | sed 's/^/- /'
+            # v0.68.0: peso del APK, para seguirlo versión a versión
+            echo "- Tamaño del APK: $(stat -c %s artefactos/apk/onix-launcher.apk | awk '{printf "%.1f", $1/1048576}') MB"
+          } > resultados.md
+          bash .github/scripts/release_notes.sh "$APP_VERSION" "$GITHUB_RUN_NUMBER" resultados.md > notas-release.md
+          cat notas-release.md
+
+      - name: Publicar APK, capturas y resultados para descargar desde el celular
+        # AUD-074: acción de terceros con permiso de escritura, fijada al commit de v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          body_path: notas-release.md
+          tag_name: build-${{ github.run_number }}
+          name: Onix Launcher v${{ env.APP_VERSION }} (build ${{ github.run_number }})
+          files: |
+            artefactos/apk/onix-launcher.apk
+            artefactos/apk/onix-launcher-mapping.txt.gz
+            tests.txt
+            lint.txt
+
+      # Tag SemVer (vX.Y.Z) de la versión, solo si todavía no existe: el primer build
+      # que compila una versión nueva la etiqueta.
+      - name: Crear tag de versión
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/tag_versions.sh

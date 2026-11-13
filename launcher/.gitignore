@@ -1,0 +1,21 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+# Compilación nativa local (CMake de los motores), v0.79.5
+.cxx/
+
+# Identidad de CarPlay (ADR-0012): nunca al repositorio, va en GitHub Secrets
+*.pk8
+*.p7b
+offline-mfi/
+tools/github_token.txt
+.token
+
+# Claves para compilar en la PC (las de la CI van en GitHub Secrets)
+secrets.properties
+carplay-auth/
+
+# Informes de la Prueba completa bajados de la radio (tools/bajar_informe.ps1)
+informes/
