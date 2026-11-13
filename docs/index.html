@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HeadUnitLite - Demo visual con datos ficticios</title>
+<meta name="description" content="Maqueta interactiva de un launcher para radios Android. Todos los datos son ficticios y se generan en el navegador.">
+<style>
+:root{
+  --ink:#eef2fb; --mute:#97a3c4; --blue:#4c8dff; --amber:#ffb13b; --green:#59e08a; --red:#ff5a4f;
+  --card:rgba(18,24,66,.84); --card2:rgba(38,46,100,.9); --line:rgba(120,140,220,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#03040a;color:var(--ink);font-family:Roboto,"Segoe UI",Arial,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+#page{display:flex;flex-direction:column;height:100%}
+#strip{flex:0 0 auto;display:flex;justify-content:space-between;gap:12px;padding:6px 14px;font-size:12px;color:var(--mute);background:#080a16;border-bottom:1px solid #151a33}
+#strip b{color:var(--ink);font-weight:600}
+#wrap{flex:1;position:relative;overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:1024px;height:600px;transform-origin:0 0;overflow:hidden;background:#0a0f26;border-radius:6px}
+#bg,#rain{position:absolute;inset:0;width:100%;height:100%}
+.abs{position:absolute}
+.card{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(2px)}
+/* home */
+#clock{left:36px;top:8px;font-size:76px;font-weight:700;letter-spacing:-1px;line-height:1}
+#date{left:34px;top:90px;font-size:21px}
+.chips{left:34px;top:118px;display:flex;gap:14px;font-size:13px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px}
+.dot.off{background:var(--red)}
+#brand{left:412px;top:18px;width:200px;text-align:center}
+#brand svg{display:block;margin:0 auto 4px}
+#brand span{font-size:13px;letter-spacing:6px;font-weight:600;color:#dfe6f7}
+#wx{left:618px;top:16px;width:170px;height:76px;display:flex;align-items:center;gap:10px;padding:0 12px}
+#wx .t{font-size:30px;font-weight:600}
+#wx .t small{font-size:14px;color:var(--mute);font-weight:400}
+#wx .c{font-size:11px;letter-spacing:1px;color:var(--blue);font-weight:700;text-transform:uppercase}
+.day{position:absolute;top:16px;width:50px;height:76px;background:var(--card);border:1px solid var(--line);border-radius:12px;text-align:center;font-size:11px;padding-top:6px}
+.day b{display:block;color:var(--mute);font-weight:600;letter-spacing:.5px}
+.day i{display:block;font-style:normal;font-size:14px;font-weight:600;margin-top:3px}
+#wxline{right:24px;top:98px;font-size:12px;color:#dbe2f3;text-shadow:0 1px 2px #000}
+#mus{left:24px;top:140px;width:270px;height:212px;padding:16px 16px}
+#mus .cover{position:absolute;left:16px;top:18px;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:grid;place-items:center}
+#mus .lbl{position:absolute;left:100px;top:20px;font-size:11px;letter-spacing:2px;color:var(--blue);font-weight:700}
+#mus .tt{position:absolute;left:100px;top:36px;width:158px;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mus .ar{position:absolute;left:100px;top:62px;width:158px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{position:absolute;height:4px;border-radius:2px;background:#2a3266;overflow:hidden;cursor:pointer}
+.bar>i{display:block;height:100%;background:#8aa8ff;width:0}
+#mus .bar{left:16px;top:112px;width:238px}
+#mus .tm{position:absolute;top:120px;font-size:11px;color:var(--mute)}
+.ctl{position:absolute;display:grid;place-items:center;border-radius:50%;background:#252d63}
+.ctl.play{background:var(--blue)}
+#navc{left:24px;top:364px;width:270px;height:118px;padding:14px}
+#navc .ic{position:absolute;left:14px;top:14px;width:40px;height:40px;border-radius:12px;background:var(--blue);display:grid;place-items:center}
+#navc .h{position:absolute;left:66px;top:12px;font-size:20px;font-weight:600}
+#navc .s{position:absolute;left:66px;top:38px;font-size:12px;color:var(--mute)}
+#navc .b{position:absolute;top:66px;height:38px;border-radius:19px;font-weight:600;font-size:15px;background:#252d63}
+#navc .b.a{background:var(--blue)}
+#car{left:300px;top:150px;width:450px;height:330px}
+#gcard{left:754px;top:140px;width:246px;height:342px;cursor:pointer}
+#gcard .empty{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:24px;color:var(--mute);font-size:14px}
+#dock{left:24px;top:492px;width:976px;height:96px;display:flex;justify-content:space-around;align-items:center}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:15px;width:130px}
+.app .ico{width:56px;height:56px;border-radius:15px;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+/* overlays */
+.ov{position:absolute;inset:0;display:none;background:#05060f;z-index:5}
+.ov.on{display:block}
+.panel{position:absolute;left:40px;top:28px;right:40px;bottom:28px;background:#0f1430;border:1px solid var(--line);border-radius:26px}
+.ph{position:absolute;left:24px;right:24px;top:18px;height:44px;display:flex;align-items:center;justify-content:space-between}
+.ph h2{font-size:20px;letter-spacing:4px;font-weight:700}
+.ph h2 small{font-size:12px;letter-spacing:0;color:var(--mute);font-weight:400;margin-left:10px}
+.pill{height:40px;padding:0 22px;border-radius:20px;background:#212a58;font-weight:600;font-size:15px}
+.pill.a{background:var(--blue)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:22px;padding:3px;background:#0a0e26}
+.seg button{height:34px;padding:0 20px;border-radius:17px;font-size:13px;letter-spacing:2px;font-weight:700;color:var(--mute)}
+.seg button.on{background:var(--amber);color:#1a1200}
+/* radio */
+#rdisp{position:absolute;left:24px;right:24px;top:72px;height:150px;border-radius:16px;background:#0b0904;border:1px solid #3a2c0b}
+#rfreq{position:absolute;left:0;right:0;top:6px;text-align:center;font-family:Consolas,"DejaVu Sans Mono",monospace;font-size:104px;color:var(--amber);line-height:130px}
+#rfreq small{font-size:24px;color:#6b5220;margin-left:8px}
+#rname{position:absolute;right:22px;top:26px;text-align:right;font-family:Consolas,monospace;color:var(--amber)}
+#rname b{display:block;font-size:24px}#rname i{display:block;font-style:normal;font-size:13px;letter-spacing:3px;margin-top:6px}#rname u{display:block;text-decoration:none;font-size:11px;color:#6b5220;margin-top:4px}
+.tag{position:absolute;left:22px;border:2px solid var(--amber);border-radius:5px;color:var(--amber);font-family:Consolas,monospace;font-weight:700;font-size:14px;padding:0 7px}
+#rscale{position:absolute;left:24px;right:24px;top:232px;height:112px;border-radius:14px;background:#12172e;border:1px solid var(--line);cursor:crosshair}
+#rpresets{position:absolute;left:230px;right:24px;top:358px;display:flex;gap:12px}
+.pre{flex:1;height:96px;border-radius:14px;background:#12172e;border:1px solid var(--line);text-align:left;padding:0 14px}
+.pre b{display:block;font-family:Consolas,monospace;font-size:26px}
+.pre span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pre.on{background:#2c2410;border-color:var(--amber)}.pre.on b{color:var(--amber)}
+/* generic */
+.tbl{position:absolute;font-size:14px}
+.tbl h3{font-size:12px;letter-spacing:2px;color:var(--blue);margin:6px 0 10px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;color:var(--mute)}
+.row b{color:var(--ink);text-align:right}
+.list button{display:block;width:100%;text-align:left;padding:10px 14px;border-radius:12px;background:#151b3d;margin-bottom:8px;font-size:14px}
+.list button.on{background:#223070;outline:1px solid var(--blue)}
+.list small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.big{font-size:30px;font-weight:700}
+.note{color:var(--mute);font-size:13px}
+.keys{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.keys button{height:52px;border-radius:14px;background:#1a2150;font-size:22px;font-weight:600}
+.set h3{font-size:12px;letter-spacing:2px;color:var(--blue);margin:0 0 8px}
+.set .seg{margin-bottom:18px}
+.set .seg button.on{background:var(--blue);color:#fff}
+#toast{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);background:#1b2358;border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;display:none;z-index:9}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="page">
+  <div id="strip"><span><b>Demo visual con datos ficticios.</b> Todo lo que se muestra se genera en este navegador; no hay conexión con ningún vehículo ni servicio.</span><span>Proyecto personal de pasatiempo</span></div>
+  <div id="wrap">
+  <div id="stage" data-theme="day">
+    <svg id="bg" viewBox="0 0 1024 600" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <canvas id="rain" width="1024" height="600" aria-hidden="true"></canvas>
+
+    <div id="clock" class="abs">12:15</div>
+    <div id="date" class="abs">Dom, 25 oct</div>
+    <div class="abs chips"><span><i class="dot" id="gpsDot"></i>GPS</span><span><i class="dot" id="obdDot"></i><span id="obdTxt">OBD2</span></span></div>
+    <div id="brand" class="abs">
+      <svg width="96" height="34" viewBox="0 0 96 34" aria-hidden="true"><path d="M4 28 L24 6 H72 L92 28 Z" fill="none" stroke="#dfe6f7" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 28 L42 13 H54 L66 28" fill="none" stroke="#ffb13b" stroke-width="3" stroke-linejoin="round"/></svg>
+      <span>HEADUNITLITE</span>
+    </div>
+    <div id="wx" class="card"><span id="wxIcon"></span><div><div class="t"><span id="wxT">24°</span> <small id="wxMin">/ 16°</small></div><div class="c" id="wxC">Despejado</div></div></div>
+    <div id="days"></div>
+    <div id="wxline" class="abs"></div>
+
+    <div id="mus" class="card">
+      <div class="cover"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></div>
+      <div class="lbl">MÚSICA</div><div class="tt" id="mTitle">Nada sonando</div><div class="ar" id="mArtist">Abra el reproductor y pulse reproducir</div>
+      <div class="bar" id="mBar"><i id="mFill"></i></div><span class="tm" id="mPos" style="left:16px">0:00</span><span class="tm" id="mDur" style="right:16px">0:00</span>
+      <button class="ctl" id="mPrev" aria-label="Anterior" style="left:30px;top:146px;width:44px;height:44px">&#9198;</button>
+      <button class="ctl play" id="mPlay" aria-label="Reproducir" style="left:100px;top:138px;width:60px;height:60px;font-size:24px">&#9654;</button>
+      <button class="ctl" id="mNext" aria-label="Siguiente" style="left:196px;top:146px;width:44px;height:44px">&#9197;</button>
+    </div>
+    <div id="navc" class="card">
+      <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+      <div class="h" id="ncTitle">Navegación</div><div class="s" id="ncSub">Elija con qué ir</div>
+      <button class="b a" id="ncA" style="left:14px;width:112px">Mapa</button><button class="b" id="ncB" style="left:134px;width:122px">Destinos</button>
+    </div>
+
+    <svg id="car" class="abs" viewBox="0 0 450 330" aria-label="Vehículo genérico"></svg>
+
+    <div id="gcard" class="card" role="button" tabindex="0" aria-label="Abrir tablero">
+      <svg id="gsvg" width="246" height="342" viewBox="0 0 246 342"></svg>
+      <div class="empty" id="gEmpty">Sin datos del vehículo.<br>El lector OBD2 no está conectado.</div>
+    </div>
+
+    <div id="dock" class="card"></div>
+    <div id="toast"></div>
+
+    <!-- Tablero -->
+    <div class="ov" id="ov-gauges"><div class="panel">
+      <div class="ph"><h2>TABLERO</h2><button class="pill" data-close>Cerrar</button></div>
+      <svg id="bigG" class="abs" style="left:0;top:60px" width="944" height="470" viewBox="0 0 944 470"></svg>
+    </div></div>
+
+    <!-- Navegación -->
+    <div class="ov" id="ov-nav"><div class="panel" style="overflow:hidden">
+      <div class="ph"><h2>NAVEGACIÓN</h2><button class="pill" data-close>Cerrar</button></div>
+      <div class="abs list" id="dests" style="left:24px;top:76px;width:270px"></div>
+      <svg id="map" class="abs" style="left:310px;top:76px;border-radius:16px" width="610" height="372" viewBox="0 0 610 372"></svg>
+      <div class="abs" id="turn" style="left:326px;top:90px;right:36px;height:56px;border-radius:14px;background:rgba(18,24,66,.92);padding:8px 16px;display:none"><b id="turnT" style="font-size:20px">-</b><div class="note" id="turnD">-</div></div>
+      <div class="abs" id="navInfo" style="left:310px;top:456px;width:610px;display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:14px"><span id="navSum" class="note">Sin ruta activa. Elija un destino de la lista.</span><span><button class="pill a" id="navGo">Iniciar ruta</button> <button class="pill" id="navStop">Cancelar</button></span></div>
+    </div></div>
+
+    <!-- Música -->
+    <div class="ov" id="ov-music"><div class="panel">
+      <div class="ph"><h2>MÚSICA</h2><button class="pill" data-close>Cerrar</button></div>
+      <div class="abs" style="left:24px;top:84px;width:300px;height:300px;border-radius:24px" id="bigCover"></div>
+      <div class="abs" style="left:350px;top:84px;right:24px">
+        <div class="note" id="mvLbl">NADA SONANDO</div><div class="big" id="mvTitle" style="margin:4px 0">Sin reproducción</div><div class="note" id="mvArtist">Pulse reproducir para comenzar.</div>
+        <div class="bar" id="mvBar" style="position:relative;margin:22px 0 8px;height:6px"><i id="mvFill"></i></div>
+        <div style="display:flex;justify-content:space-between" class="note"><span id="mvPos">0:00</span><span id="mvDur">0:00</span></div>
+        <div style="display:flex;gap:16px;margin:16px 0;align-items:center"><button class="pill" id="mvPrev">Anterior</button><button class="pill a" id="mvPlay" style="min-width:140px">Reproducir</button><button class="pill" id="mvNext">Siguiente</button></div>
+        <div id="lyrics" style="height:140px;overflow:hidden;font-size:18px;line-height:34px;color:var(--mute)"></div>
+      </div>
+    </div></div>
+
+    <!-- Radio -->
+    <div class="ov" id="ov-radio"><div class="panel">
+      <div class="ph"><h2>RADIO FM<small id="rCount"></small></h2><span><span class="seg" id="rScope"><button data-s="local" class="on">LOCAL</button><button data-s="nacional">NACIONAL</button></span> <button class="pill" data-close>Cerrar</button></span></div>
+      <div id="rdisp"><span class="tag" style="top:22px">FM</span><span class="tag" style="top:56px">ST</span><svg class="abs" style="left:22px;top:92px" width="46" height="28" id="rSig"></svg><div id="rfreq">95.5<small>MHz</small></div><div id="rname"><b>-</b><i>-</i><u>-</u></div></div>
+      <svg id="rscale" width="896" height="112" viewBox="0 0 896 112"></svg>
+      <div class="abs" style="left:24px;top:358px;display:flex;gap:10px;align-items:center"><button class="ctl" id="rPrev" style="position:static;width:56px;height:56px">&#9198;</button><button class="ctl" id="rPow" style="position:static;width:72px;height:72px;background:#d63b32"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.5 6.5a8 8 0 1011 0"/></svg></button><button class="ctl" id="rNext" style="position:static;width:56px;height:56px">&#9197;</button></div>
+      <div id="rpresets"></div>
+    </div></div>
+
+    <!-- Teléfono -->
+    <div class="ov" id="ov-phone"><div class="panel">
+      <div class="ph"><h2>TELÉFONO</h2><button class="pill" data-close>Cerrar</button></div>
+      <div class="abs list" id="contacts" style="left:24px;top:76px;width:330px"></div>
+      <div class="abs" style="left:390px;top:76px;width:300px"><div class="big" id="dialNum" style="height:44px;font-variant-numeric:tabular-nums">&nbsp;</div><div class="keys" id="keys" style="margin-top:12px"></div><div style="margin-top:12px;display:flex;gap:10px"><button class="pill a" id="dialGo" style="width:140px">Llamar</button><button class="pill" id="dialDel">Borrar</button></div></div>
+      <div class="abs" id="callBox" style="left:720px;top:76px;right:24px;bottom:24px;border-radius:18px;background:#151b3d;padding:20px;text-align:center"><div class="note" id="callSt">Sin llamadas en curso</div><div class="big" id="callWho" style="margin:12px 0">-</div><div class="note" id="callT">-</div><button class="pill" id="callEnd" style="margin-top:16px;background:#d63b32;display:none">Finalizar</button></div>
+    </div></div>
+
+    <!-- Diagnóstico -->
+    <div class="ov" id="ov-diag"><div class="panel">
+      <div class="ph"><h2>DIAGNÓSTICO EN VIVO</h2><button class="pill" data-close>Cerrar</button></div>
+      <div class="tbl" style="left:24px;top:72px;width:420px"><h3>EQUIPO Y RENDIMIENTO</h3><div id="dEq"></div></div>
+      <div class="tbl" style="left:470px;top:72px;width:420px"><h3>SENSORES</h3><div id="dSe"></div></div>
+      <div class="tbl" style="left:24px;top:300px;right:24px"><h3>CÓDIGOS DE FALLA (DTC)</h3><div id="dDtc"></div></div>
+    </div></div>
+
+    <!-- Ajustes -->
+    <div class="ov" id="ov-set"><div class="panel">
+      <div class="ph"><h2>AJUSTES</h2><button class="pill" data-close>Cerrar</button></div>
+      <div class="set abs" style="left:28px;top:80px;width:420px">
+        <h3>TEMA</h3><div class="seg" data-set="theme"><button data-v="auto">Automático</button><button data-v="day">Día</button><button data-v="night">Noche</button></div>
+        <h3>CLIMA SIMULADO</h3><div class="seg" data-set="weather"><button data-v="despejado">Despejado</button><button data-v="nublado">Nublado</button><button data-v="lluvia">Lluvia</button></div>
+        <h3>CONDUCCIÓN SIMULADA</h3><div class="seg" data-set="drive"><button data-v="detenido">Detenido</button><button data-v="ciudad">Ciudad</button><button data-v="carretera">Carretera</button></div>
+      </div>
+      <div class="set abs" style="left:480px;top:80px;width:420px">
+        <h3>LECTOR OBD2</h3><div class="seg" data-set="obd"><button data-v="on">Conectado</button><button data-v="off">Sin conectar</button></div>
+        <h3>FALLAS SIMULADAS</h3><div class="seg" data-set="dtc"><button data-v="off">Ninguna</button><button data-v="on">Con códigos</button></div>
+        <h3>SEMILLA DE DATOS</h3><div class="seg" data-set="seed"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button></div>
+        <div class="note" style="margin-top:8px">Cambiar la semilla genera otros pronósticos, temas y contactos. Los ajustes no se guardan al cerrar la página.</div>
+      </div>
+    </div></div>
+  </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var NS = "http://www.w3.org/2000/svg";
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fmtT(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + pad(s % 60); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  var S = { theme: "auto", weather: "despejado", drive: "ciudad", obd: "on", dtc: "off", seed: 1,
+    speed: 0, rpm: 0, temp: 62, fuel: 64, batt: 14.2, track: -1, playing: false, pos: 0,
+    radioOn: true, scope: "local", freq: 95.5, nav: null, call: null, dial: "", uptime: 0 };
+  var R = mulberry(1), V = mulberry(7);
+
+  var ICON = {
+    sun: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ffc53d" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" fill="#ffc53d"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+    moon: '<svg width="34" height="34" viewBox="0 0 24 24" fill="#cfd8ff" stroke="#cfd8ff" stroke-width="1.5"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></svg>',
+    cloud: '<svg width="34" height="34" viewBox="0 0 24 24" fill="#c3cde6" stroke="#c3cde6" stroke-width="1.5" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 01-.5-9 6 6 0 0111.4 1.5A3.8 3.8 0 0117.5 18z"/></svg>',
+    rain: '<svg width="34" height="34" viewBox="0 0 24 24" fill="#a9b8d8" stroke="#a9b8d8" stroke-width="1.5" stroke-linejoin="round"><path d="M7 14a4.5 4.5 0 01-.5-9 6 6 0 0111.4 1.5A3.8 3.8 0 0117.5 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3" stroke="#5aa2ff" stroke-linecap="round"/></svg>'
+  };
+  function ic(name, size, color) {
+    var p = {
+      nav: '<path d="M4 11l16-7-7 16-2-7z" fill="#fff"/>',
+      mus: '<path d="M9 18V6l10-2v12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="6.5" cy="18" r="2.5" fill="#fff"/><circle cx="16.5" cy="16" r="2.5" fill="#fff"/>',
+      rad: '<rect x="3" y="8" width="18" height="12" rx="2.5" fill="none" stroke="#fff" stroke-width="2"/><path d="M6 8l12-4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="14" r="2" fill="none" stroke="#fff" stroke-width="2"/><path d="M6 12h5M6 15h5" stroke="#fff" stroke-width="2"/>',
+      tel: '<rect x="7" y="3" width="10" height="18" rx="2.5" fill="none" stroke="#fff" stroke-width="2"/><path d="M11 18h2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+      dia: '<path d="M3 12h4l2-6 4 12 2-6h6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      set: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'
+    };
+    return '<svg width="' + (size || 28) + '" height="' + (size || 28) + '" viewBox="0 0 24 24">' + p[name] + "</svg>";
+  }
+
+  /* ---------- tiempo y tema ---------- */
+  var days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"], months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  function isNight() { if (S.theme === "day") return false; if (S.theme === "night") return true; var h = new Date().getHours(); return h < 7 || h >= 19; }
+
+  function drawBg() {
+    var n = isNight(), w = S.weather, top, bot, m1, m2, road;
+    if (n) { top = w === "lluvia" ? "#0b0f1d" : "#070b1f"; bot = "#1b2547"; m1 = "#1a2347"; m2 = "#0f1632"; road = "#0b0f1f"; }
+    else if (w === "lluvia") { top = "#5b6879"; bot = "#98a3b4"; m1 = "#687487"; m2 = "#4d586a"; road = "#3d4553"; }
+    else if (w === "nublado") { top = "#7f92b0"; bot = "#c3cedd"; m1 = "#7686a0"; m2 = "#586783"; road = "#4a5361"; }
+    else { top = "#4f86d8"; bot = "#bcd6f0"; m1 = "#8aa0c4"; m2 = "#5f759c"; road = "#4b525e"; }
+    var s = '<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + top + '"/><stop offset="1" stop-color="' + bot + '"/></linearGradient>' +
+      '<linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient></defs>' +
+      '<rect width="1024" height="600" fill="url(#sky)"/>';
+    if (n) { for (var i = 0; i < 60; i++) { s += '<circle cx="' + (V() * 1024).toFixed(0) + '" cy="' + (V() * 230).toFixed(0) + '" r="' + (0.5 + V() * 1.1).toFixed(1) + '" fill="#fff" opacity="' + (0.25 + V() * 0.6).toFixed(2) + '"/>'; } }
+    else if (w === "despejado") { s += '<circle cx="860" cy="180" r="38" fill="#fff6cf" opacity=".85"/>'; }
+    s += '<path d="M0 330 L120 220 L210 270 L330 170 L470 290 L590 200 L720 290 L860 190 L1024 300 V430 H0Z" fill="' + m1 + '"/>' +
+      '<path d="M0 380 L160 300 L300 350 L460 290 L640 360 L800 300 L1024 370 V470 H0Z" fill="' + m2 + '"/>' +
+      '<rect y="440" width="1024" height="160" fill="' + (n ? "#0d1427" : "#4b6a45") + '"/>' +
+      '<path d="M430 440 H600 L900 600 H110Z" fill="' + road + '"/>' +
+      '<path d="M512 440 L516 440 L560 600 L470 600Z" fill="none"/>';
+    for (var k = 0; k < 6; k++) { var t = k / 6, y = 450 + t * t * 150, w2 = 2 + t * 10; s += '<rect x="' + (512 - w2 / 2) + '" y="' + y + '" width="' + w2 + '" height="' + (4 + t * 26) + '" fill="#e9e1a4" opacity=".8"/>'; }
+    s += '<rect width="1024" height="600" fill="url(#fade)"/>';
+    $("#bg").innerHTML = s;
+  }
+
+  var carSvg = function () {
+    return '<defs><linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f7"/><stop offset="1" stop-color="#aab2c4"/></linearGradient>' +
+      '<radialGradient id="beam"><stop offset="0" stop-color="#fff7c8" stop-opacity=".9"/><stop offset="1" stop-color="#fff7c8" stop-opacity="0"/></radialGradient></defs>' +
+      '<ellipse cx="225" cy="305" rx="190" ry="16" fill="#000" opacity=".35"/>' +
+      '<rect x="52" y="226" width="44" height="82" rx="14" fill="#14161c"/><rect x="354" y="226" width="44" height="82" rx="14" fill="#14161c"/>' +
+      '<path d="M78 176 L108 70 Q225 36 342 70 L372 176 Q384 186 384 214 V262 Q384 280 366 282 H84 Q66 280 66 262 V214 Q66 186 78 176Z" fill="url(#body)" stroke="#8892a8" stroke-width="2"/>' +
+      '<path d="M122 80 Q225 52 328 80 L350 160 H100Z" fill="#1b2233"/><path d="M130 86 Q190 70 240 70 L170 160 H112Z" fill="#fff" opacity=".12"/>' +
+      '<path d="M74 176 H376 L384 214 H66Z" fill="#c9cfdd" opacity=".7"/>' +
+      '<g id="hl"><path d="M84 190 L168 196 L172 226 L80 226Z" fill="#e8edf7" stroke="#7b869f" stroke-width="2"/><path d="M366 190 L282 196 L278 226 L370 226Z" fill="#e8edf7" stroke="#7b869f" stroke-width="2"/></g>' +
+      '<path d="M176 200 H274 L270 236 H180Z" fill="#161a24"/><path d="M186 214 H264" stroke="#9aa5bd" stroke-width="5"/><path d="M186 224 H264" stroke="#697491" stroke-width="3"/>' +
+      '<path d="M96 246 H354 V270 Q354 280 344 280 H106 Q96 280 96 270Z" fill="#2a2f3d"/><rect x="190" y="248" width="70" height="26" rx="3" fill="#f1f3f8" stroke="#8892a8"/><text x="225" y="267" text-anchor="middle" font-size="15" font-weight="700" fill="#33415f" font-family="Arial">DEMO</text>' +
+      '<g id="beams" opacity="0"><ellipse cx="110" cy="214" rx="120" ry="60" fill="url(#beam)"/><ellipse cx="340" cy="214" rx="120" ry="60" fill="url(#beam)"/></g>';
+  };
+
+  /* ---------- clima ---------- */
+  var wxNow = { t: 24, min: 16 };
+  var forecast = [];
+  function buildForecast() {
+    var r = mulberry(100 + S.seed), kinds = ["despejado", "nublado", "lluvia"], d = new Date();
+    forecast = [];
+    for (var i = 1; i <= 4; i++) { var dd = new Date(d.getTime() + i * 864e5); forecast.push({ n: days[dd.getDay()].toUpperCase(), k: kinds[Math.floor(r() * 3)], t: Math.round(17 + r() * 11) }); }
+    $("#days").innerHTML = forecast.map(function (f, i) { return '<div class="day" style="left:' + (794 + i * 52) + 'px"><b>' + f.n + "</b>" + (f.k === "lluvia" ? ICON.rain : f.k === "nublado" ? ICON.cloud : ICON.sun).replace(/34/g, "22") + "<i>" + f.t + "°</i></div>"; }).join("");
+  }
+  function updWeather() {
+    var h = new Date().getHours() + new Date().getMinutes() / 60;
+    var base = 17 + 7 * Math.sin((h - 9) / 24 * 2 * Math.PI);
+    if (S.weather === "lluvia") base -= 4; else if (S.weather === "nublado") base -= 2;
+    wxNow.t = Math.round(base); wxNow.min = Math.round(base - 8 + (S.seed - 1));
+    var n = isNight(), ico = S.weather === "lluvia" ? ICON.rain : S.weather === "nublado" ? ICON.cloud : (n ? ICON.moon : ICON.sun);
+    $("#wxIcon").innerHTML = ico; $("#wxT").textContent = wxNow.t + "°"; $("#wxMin").textContent = "/ " + wxNow.min + "°";
+    $("#wxC").textContent = S.weather === "lluvia" ? "Lluvia" : S.weather === "nublado" ? "Nublado" : "Despejado";
+    $("#wxline").textContent = "Sensación " + (wxNow.t - 1) + "° · Humedad " + (S.weather === "lluvia" ? 86 : 58) + "% · Viento " + (S.weather === "lluvia" ? 22 : 12) + " km/h · Lluvia " + (S.weather === "lluvia" ? 80 : S.weather === "nublado" ? 30 : 10) + "%";
+  }
+
+  /* ---------- lluvia ---------- */
+  var drops = [], rctx = $("#rain").getContext("2d");
+  for (var i = 0; i < 140; i++) drops.push({ x: Math.random() * 1024, y: Math.random() * 600, l: 8 + Math.random() * 12, v: 9 + Math.random() * 8 });
+  function rainFrame() {
+    rctx.clearRect(0, 0, 1024, 600);
+    if (S.weather === "lluvia") {
+      rctx.strokeStyle = "rgba(190,210,255,.45)"; rctx.lineWidth = 1; rctx.beginPath();
+      drops.forEach(function (d) { rctx.moveTo(d.x, d.y); rctx.lineTo(d.x - 2, d.y + d.l); d.y += d.v; d.x -= 1; if (d.y > 600) { d.y = -20; d.x = Math.random() * 1030; } });
+      rctx.stroke();
+    }
+    requestAnimationFrame(rainFrame);
+  }
+
+  /* ---------- tarjeta de indicadores ---------- */
+  function buildGauges() {
+    var s = '<text x="123" y="40" text-anchor="middle" font-size="44" font-weight="700" fill="#fff" id="gSpd">0</text><text x="170" y="40" font-size="14" fill="#97a3c4">km/h</text>' +
+      '<text x="62" y="68" text-anchor="middle" font-size="12" fill="#97a3c4">Refrigerante</text><text x="184" y="68" text-anchor="middle" font-size="12" fill="#97a3c4">Combustible</text>' +
+      '<text x="62" y="86" text-anchor="middle" font-size="11" fill="#97a3c4">H</text><text x="62" y="270" text-anchor="middle" font-size="11" fill="#97a3c4">C</text>' +
+      '<text x="184" y="86" text-anchor="middle" font-size="11" fill="#97a3c4">F</text><text x="184" y="270" text-anchor="middle" font-size="11" fill="#97a3c4">E</text>';
+    for (var i = 0; i < 10; i++) { s += '<rect id="gt' + i + '" x="20" y="' + (92 + (9 - i) * 17) + '" width="8" height="12" rx="2" fill="#26306a"/><rect id="gf' + i + '" x="218" y="' + (92 + (9 - i) * 17) + '" width="8" height="12" rx="2" fill="#26306a"/>'; }
+    s += '<path d="M38 92 Q80 92 80 118 V236 Q80 262 38 262" fill="none" stroke="#a3afe0" stroke-width="2"/><path d="M208 92 Q166 92 166 118 V236 Q166 262 208 262" fill="none" stroke="#a3afe0" stroke-width="2"/>' +
+      '<text x="62" y="186" text-anchor="middle" font-size="30" font-weight="700" fill="#fff" id="gTemp">--</text><text x="184" y="186" text-anchor="middle" font-size="30" font-weight="700" fill="#fff" id="gFuel">--</text>' +
+      '<text x="62" y="208" text-anchor="middle" font-size="12" fill="#97a3c4">°C</text><text x="184" y="208" text-anchor="middle" font-size="12" fill="#97a3c4">%</text>' +
+      '<rect x="116" y="92" width="14" height="150" rx="7" fill="#1c2459"/><rect id="gRpm" x="116" y="242" width="14" height="0" rx="7" fill="#ff9c4d"/><text x="123" y="262" text-anchor="middle" font-size="10" fill="#97a3c4">RPM</text>' +
+      '<text x="22" y="304" font-size="12" fill="#97a3c4">Batería</text><text x="22" y="328" font-size="22" font-weight="700" fill="#fff" id="gBat">--</text>' +
+      '<text x="224" y="304" text-anchor="end" font-size="12" fill="#97a3c4">Régimen</text><text x="224" y="328" text-anchor="end" font-size="22" font-weight="700" fill="#fff" id="gRpmT">--</text>';
+    $("#gsvg").innerHTML = s;
+  }
+  function paintSeg(prefix, frac, hot) {
+    var on = Math.round(frac * 10);
+    for (var i = 0; i < 10; i++) { var el = $("#" + prefix + i); el.setAttribute("fill", i < on ? (hot && i >= 8 ? "#ff5a4f" : (prefix === "gf" && i < 2 ? "#ffb13b" : "#3d7bff")) : "#26306a"); }
+  }
+
+  /* ---------- tablero grande ---------- */
+  function buildBig() {
+    function gauge(cx, cy, r, max, step, red, label, unit, id, div) {
+      var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 18) + '" fill="#0a0f2a" stroke="#223070" stroke-width="2"/>';
+      var a0 = 135, span = 270;
+      for (var v = 0; v <= max; v += step / 2) {
+        var a = (a0 + span * v / max) * Math.PI / 180, major = (v % step) === 0, r1 = r - (major ? 22 : 12), x1 = cx + r1 * Math.cos(a), y1 = cy + r1 * Math.sin(a), x2 = cx + r * Math.cos(a), y2 = cy + r * Math.sin(a);
+        s += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + (v >= red ? "#ff5a4f" : "#e8eefc") + '" stroke-width="' + (major ? 4 : 2) + '"/>';
+        if (major) { var rt = r - 44, tx = cx + rt * Math.cos(a), ty = cy + rt * Math.sin(a) + 7; s += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" font-size="20" fill="' + (v >= red ? "#ff7a70" : "#e8eefc") + '">' + (v / div) + "</text>"; }
+      }
+      s += '<line id="' + id + 'N" x1="' + cx + '" y1="' + cy + '" x2="' + (cx + r - 6) + '" y2="' + cy + '" stroke="#5ec9ff" stroke-width="5" stroke-linecap="round" transform="rotate(135 ' + cx + " " + cy + ')"/><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#0a0f2a" stroke="#5ec9ff" stroke-width="3"/>';
+      s += '<text id="' + id + 'V" x="' + cx + '" y="' + (cy + 80) + '" text-anchor="middle" font-size="54" font-weight="700" font-style="italic" fill="#fff">0</text><text x="' + cx + '" y="' + (cy + 106) + '" text-anchor="middle" font-size="14" fill="#97a3c4">' + unit + "</text>";
+      return s;
+    }
+    var s = gauge(220, 230, 170, 220, 20, 180, "", "km/h", "bs", 1) + gauge(724, 230, 170, 8000, 1000, 7000, "", "rpm x1000", "br", 1000);
+    s += '<g font-size="14" fill="#97a3c4"><text x="472" y="150" text-anchor="middle">Refrigerante</text><text x="472" y="230" text-anchor="middle">Combustible</text><text x="472" y="310" text-anchor="middle">Batería</text></g>' +
+      '<text id="bsT" x="472" y="186" text-anchor="middle" font-size="34" font-weight="700" fill="#59e08a">--</text><text id="bsF" x="472" y="266" text-anchor="middle" font-size="34" font-weight="700" fill="#59e08a">--</text><text id="bsB" x="472" y="346" text-anchor="middle" font-size="34" font-weight="700" fill="#59e08a">--</text>';
+    $("#bigG").innerHTML = s;
+  }
+  function needle(id, frac) { var el = $("#" + id + "N"); var c = el.getAttribute("x1"), y = el.getAttribute("y1"); el.setAttribute("transform", "rotate(" + (135 + 270 * clamp(frac, 0, 1)).toFixed(1) + " " + c + " " + y + ")"); }
+
+  /* ---------- música ---------- */
+  var tracks = [], lyricsBase = ["Primera línea de una letra de ejemplo", "El camino sigue hacia adelante", "Una segunda estrofa inventada", "Palabras sin autor ni derechos", "Última línea de la muestra", "Se repite el estribillo ficticio"];
+  var covers = [["#8b5cf6", "#ec4899"], ["#06b6d4", "#3b82f6"], ["#f59e0b", "#ef4444"], ["#10b981", "#3b82f6"]];
+  function buildTracks() {
+    var r = mulberry(300 + S.seed), t = ["Tema de ejemplo", "Pista de muestra", "Canción ficticia", "Melodía demo"], a = ["Artista Demo", "Banda de Prueba", "Intérprete Ficticio", "Conjunto Muestra"];
+    tracks = []; for (var i = 0; i < 4; i++) tracks.push({ t: t[i] + " " + (i + 1), a: a[i], d: 150 + Math.floor(r() * 120), c: covers[i] });
+  }
+  function setTrack(i) { S.track = (i + tracks.length) % tracks.length; S.pos = 0; updMusic(); }
+  function togglePlay() { if (S.track < 0) S.track = 0; S.playing = !S.playing; updMusic(); }
+  function updMusic() {
+    var t = S.track >= 0 ? tracks[S.track] : null, frac = t ? S.pos / t.d : 0, playSym = S.playing ? "&#10074;&#10074;" : "&#9654;";
+    $("#mTitle").textContent = t ? t.t : "Nada sonando"; $("#mArtist").textContent = t ? t.a : "Abra el reproductor y pulse reproducir";
+    $("#mFill").style.width = (frac * 100) + "%"; $("#mPos").textContent = t ? fmtT(S.pos) : "0:00"; $("#mDur").textContent = t ? fmtT(t.d) : "0:00";
+    $("#mPlay").innerHTML = playSym; $("#mPlay").setAttribute("aria-label", S.playing ? "Pausar" : "Reproducir");
+    $("#mvTitle").textContent = t ? t.t : "Sin reproducción"; $("#mvArtist").textContent = t ? t.a : "Pulse reproducir para comenzar.";
+    $("#mvLbl").textContent = t ? (S.playing ? "REPRODUCIENDO" : "EN PAUSA") : "NADA SONANDO";
+    $("#mvFill").style.width = (frac * 100) + "%"; $("#mvPos").textContent = t ? fmtT(S.pos) : "0:00"; $("#mvDur").textContent = t ? fmtT(t.d) : "0:00";
+    $("#mvPlay").textContent = S.playing ? "Pausar" : "Reproducir";
+    var c = t ? t.c : ["#2a3266", "#1a2150"]; $("#bigCover").style.background = "linear-gradient(135deg," + c[0] + "," + c[1] + ")";
+    $(".cover", $("#mus")).style.background = "linear-gradient(135deg," + c[0] + "," + c[1] + ")";
+    var cur = t ? Math.floor(S.pos / (t.d / lyricsBase.length)) : -1;
+    $("#lyrics").innerHTML = t ? lyricsBase.map(function (l, i) { return '<div style="' + (i === cur ? "color:#fff;font-size:22px;font-weight:600" : "") + '">' + l + "</div>"; }).join("") : '<div class="note" style="line-height:24px">Sin letra disponible. Seleccione una pista.</div>';
+    var el = $("#lyrics"); if (t) el.scrollTop = Math.max(0, (cur - 1) * 34);
+  }
+
+  /* ---------- radio ---------- */
+  var stations = {
+    local: [{ f: 88.7, n: "Radio Ejemplo Uno", d: "FM 88.7 · Ciudad Demo" }, { f: 95.5, n: "FM Muestra", d: "FM 95.5 · Ciudad Demo" }, { f: 101.3, n: "Estación Demo", d: "FM 101.3 · Ciudad Demo" }, { f: 0, n: "Radio Web A", d: "Por internet", web: true }],
+    nacional: [{ f: 91.9, n: "Radio Nacional Uno", d: "FM 91.9 · Red nacional" }, { f: 98.1, n: "Red Muestra", d: "FM 98.1 · Red nacional" }, { f: 104.5, n: "Cadena Demo", d: "FM 104.5 · Red nacional" }, { f: 0, n: "Radio Web B", d: "Por internet", web: true }]
+  };
+  function curSt() { var list = stations[S.scope]; for (var i = 0; i < list.length; i++) if (!list[i].web && Math.abs(list[i].f - S.freq) < 0.25) return list[i]; return null; }
+  function buildScale() {
+    var s = ""; for (var fi = 0; fi <= 100; fi++) { var f = 88 + fi * 0.2; var x = 24 + (f - 88) / 20 * 848, mj = Math.abs(f - Math.round(f)) < 0.01 && Math.round(f) % 2 === 0, md = Math.abs(f - Math.round(f)) < 0.01; s += '<line x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + (mj ? 40 : md ? 52 : 60) + '" y2="68" stroke="' + (mj ? "#c6cde8" : "#6c7599") + '" stroke-width="' + (mj ? 3 : 1.5) + '"/>'; if (mj) s += '<text x="' + x.toFixed(1) + '" y="96" text-anchor="middle" fill="#a8b0cf" font-size="18">' + Math.round(f) + "</text>"; }
+    s += '<g id="rMarks"></g><rect id="rNeedle" x="0" y="14" width="5" height="64" rx="2" fill="#ff4d3d"/>';
+    $("#rscale").innerHTML = s;
+  }
+  function updRadio() {
+    var st = curSt(), on = S.radioOn, list = stations[S.scope];
+    $("#rCount").textContent = list.length + " emisoras · por internet";
+    $("#rfreq").style.opacity = on ? 1 : .25; $("#rfreq").innerHTML = S.freq.toFixed(1) + "<small>MHz</small>";
+    var nm = $("#rname");
+    if (!on) { nm.innerHTML = "<b>Apagada</b><i>-</i><u>Pulse el botón de encendido</u>"; }
+    else if (st) { nm.innerHTML = "<b>" + st.n + "</b><i>EN VIVO</i><u>" + st.d + "</u>"; }
+    else { nm.innerHTML = "<b>Sin señal</b><i>-</i><u>No hay emisora en esta frecuencia</u>"; }
+    var bars = on ? (st ? 5 : 1) : 0, sg = ""; for (var i = 0; i < 5; i++) sg += '<rect x="' + (i * 9) + '" y="' + (22 - (i + 1) * 4.4) + '" width="6" height="' + ((i + 1) * 4.4 + 2) + '" fill="' + (i < bars ? "#ffb13b" : "#4a3a14") + '"/>';
+    $("#rSig").innerHTML = sg;
+    $("#rNeedle").setAttribute("x", (24 + (S.freq - 88) / 20 * 848 - 2.5).toFixed(1));
+    $("#rMarks").innerHTML = list.filter(function (x) { return !x.web; }).map(function (x) { return '<rect x="' + (24 + (x.f - 88) / 20 * 848 - 1) + '" y="30" width="2" height="12" fill="#ffb13b"/>'; }).join("");
+    $("#rpresets").innerHTML = list.map(function (x, i) { var onp = st && st === x; return '<button class="pre' + (onp ? " on" : "") + '" data-i="' + i + '"><b>' + (x.web ? "WEB" : x.f.toFixed(1)) + "</b><span>" + x.n + "</span></button>"; }).join("");
+    $$(".seg button", $("#rScope")).forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-s") === S.scope); });
+    $("#rPow").style.background = on ? "#d63b32" : "#3a2f4a";
+  }
+  function stepStation(dir) { var list = stations[S.scope].filter(function (x) { return !x.web; }); var idx = -1, best = 99; list.forEach(function (x, i) { var d = Math.abs(x.f - S.freq); if (d < best) { best = d; idx = i; } }); var cur = curSt(); var ni = cur ? idx + dir : (dir > 0 ? list.findIndex(function (x) { return x.f > S.freq; }) : list.map(function (x) { return x.f; }).reduce(function (a, f, i) { return f < S.freq ? i : a; }, -1)); S.freq = list[(ni + list.length) % list.length].f; S.radioOn = true; updRadio(); }
+
+  /* ---------- navegación ---------- */
+  var dest = [{ n: "Destino de ejemplo 1", s: "Centro · 8,4 km", km: 8.4 }, { n: "Destino de ejemplo 2", s: "Zona norte · 14,2 km", km: 14.2 }, { n: "Destino de ejemplo 3", s: "Aeropuerto · 22,7 km", km: 22.7 }];
+  var routePts = "M60 320 L60 250 L150 250 L150 170 L280 170 L280 110 L420 110 L420 190 L540 190 L540 60";
+  function buildMap() {
+    var s = '<rect width="610" height="372" fill="#101a3a"/>';
+    var r = mulberry(500 + S.seed);
+    for (var x = 20; x < 610; x += 90) for (var y = 10; y < 372; y += 70) s += '<rect x="' + x + '" y="' + y + '" width="' + (60 + r() * 14).toFixed(0) + '" height="' + (44 + r() * 10).toFixed(0) + '" rx="4" fill="#17234d"/>';
+    s += '<path d="M0 300 Q150 270 300 320 T610 290 V372 H0Z" fill="#0e2a5a" opacity=".8"/>';
+    s += '<path d="' + routePts + '" fill="none" stroke="#2a4fb4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>';
+    s += '<path id="route" d="' + routePts + '" fill="none" stroke="#4c8dff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" style="display:none"/>';
+    s += '<circle id="destPin" r="11" fill="#ff5a4f" stroke="#fff" stroke-width="3" style="display:none"/><g id="me"><circle r="16" fill="#4c8dff" opacity=".25"/><path d="M0 -11 L8 9 L0 5 L-8 9Z" fill="#fff"/></g>';
+    $("#map").innerHTML = s;
+    var rt = $("#route"), p0 = rt.getPointAtLength(0); $("#me").setAttribute("transform", "translate(" + p0.x + "," + p0.y + ")");
+  }
+  function buildDests() {
+    $("#dests").innerHTML = '<div class="note" style="margin-bottom:8px">Destinos de ejemplo</div>' + dest.map(function (d, i) { return '<button data-d="' + i + '"' + (S.nav && S.nav.i === i ? ' class="on"' : "") + ">" + d.n + "<small>" + d.s + "</small></button>"; }).join("");
+  }
+  var steps = [{ at: 0, t: "Continuar recto", d: "por la avenida de ejemplo" }, { at: .17, t: "Girar a la derecha", d: "en la calle Muestra" }, { at: .38, t: "Girar a la izquierda", d: "en el cruce siguiente" }, { at: .62, t: "Mantenerse a la derecha", d: "hacia el destino" }, { at: .86, t: "Su destino está adelante", d: "a pocos metros" }];
+  function updNav() {
+    var rt = $("#route"), n = S.nav, has = !!n, len = rt.getTotalLength();
+    rt.style.display = has ? "" : "none"; $("#destPin").style.display = has ? "" : "none"; $("#turn").style.display = has && n.run ? "block" : "none";
+    if (has) { var e = rt.getPointAtLength(len); $("#destPin").setAttribute("cx", e.x); $("#destPin").setAttribute("cy", e.y); }
+    var p = rt.getPointAtLength(has ? n.prog * len : 0); $("#me").setAttribute("transform", "translate(" + p.x + "," + p.y + ")");
+    $("#navGo").style.display = has && !n.run && n.prog < 1 ? "" : "none"; $("#navStop").style.display = has ? "" : "none";
+    if (!has) { $("#navSum").textContent = "Sin ruta activa. Elija un destino de la lista."; $("#ncTitle").textContent = "Navegación"; $("#ncSub").textContent = "Elija con qué ir"; }
+    else {
+      var rem = n.km * (1 - n.prog), spd = Math.max(S.speed, 25), eta = Math.round(rem / spd * 60);
+      if (n.prog >= 1) { $("#navSum").textContent = "Ha llegado a su destino: " + dest[n.i].n; $("#ncTitle").textContent = "Ha llegado"; $("#ncSub").textContent = dest[n.i].n; }
+      else { $("#navSum").textContent = dest[n.i].n + " · Quedan " + rem.toFixed(1).replace(".", ",") + " km · " + (n.run ? "Llegada en unos " + eta + " min" : "Ruta lista para iniciar"); $("#ncTitle").textContent = rem.toFixed(1).replace(".", ",") + " km"; $("#ncSub").textContent = dest[n.i].n; }
+      var st = steps[0]; steps.forEach(function (s) { if (n.prog >= s.at) st = s; });
+      $("#turnT").textContent = st.t; $("#turnD").textContent = st.d;
+    }
+    buildDests();
+  }
+
+  /* ---------- teléfono ---------- */
+  var contacts = [];
+  function buildContacts() {
+    var r = mulberry(700 + S.seed), nm = ["Contacto A", "Contacto B", "Contacto C", "Contacto D", "Contacto E", "Contacto F"];
+    contacts = nm.map(function (n) { var num = "555-01" + pad(Math.floor(r() * 100)); return { n: n, num: num }; });
+    $("#contacts").innerHTML = '<div class="note" style="margin-bottom:8px">Contactos de ejemplo</div>' + contacts.map(function (c, i) { return '<button data-c="' + i + '">' + c.n + "<small>" + c.num + "</small></button>"; }).join("");
+  }
+  function startCall(who) { S.call = { who: who, t: 0 }; updCall(); }
+  function updCall() {
+    var c = S.call; $("#callSt").textContent = c ? (c.t < 3 ? "Llamando..." : "En llamada") : "Sin llamadas en curso";
+    $("#callWho").textContent = c ? c.who : "-"; $("#callT").textContent = c ? (c.t < 3 ? "Conectando" : fmtT(c.t - 3)) : "Los números son ficticios y no se realiza ninguna llamada.";
+    $("#callEnd").style.display = c ? "" : "none";
+  }
+
+  /* ---------- diagnóstico ---------- */
+  function updDiag() {
+    var obd = S.obd === "on", d = new Date(), up = S.uptime;
+    function row(a, b) { return '<div class="row"><span>' + a + "</span><b>" + b + "</b></div>"; }
+    $("#dEq").innerHTML = row("Fluidez", "buena") + row("Memoria de la aplicación", (140 + Math.round(S.uptime % 9)) + " de 512 MB") + row("Pantalla", "1024x600 px · 160 dpi") + row("Android", "13 (API 33) · simulado") + row("Equipo", "Radio genérica de ejemplo") + row("Versión de la demo", "1.0.0");
+    $("#dSe").innerHTML = row("Hora", pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds())) + row("Ambiente", isNight() ? "noche" : "día") + row("Luces", isNight() ? "encendidas" : "apagadas") + row("Música", S.playing ? "reproduciendo" : "nada") + row("GPS", Math.round(S.speed) + " km/h") + row("Clima", wxNow.t + "° " + $("#wxC").textContent) + row("OBD2", obd ? "conectado" : "sin conectar") + row("Último error", obd ? "ninguno" : "No se encontró el lector OBD2");
+    var dtc = [["P0301", "Falla de encendido en el cilindro 1"], ["P0171", "Mezcla pobre (banco 1)"], ["P0420", "Eficiencia del catalizador por debajo del umbral"]];
+    $("#dDtc").innerHTML = !obd ? '<div class="note">No se pueden leer códigos: el lector OBD2 no está conectado.</div>' : S.dtc === "on" ? dtc.map(function (x) { return row('<span style="color:#ffb13b;font-weight:700">' + x[0] + "</span> " + x[1], "Almacenado"); }).join("") + '<div class="note" style="margin-top:6px">Códigos genéricos de ejemplo; no corresponden a un vehículo real.</div>' : '<div class="row"><span>Sin códigos de falla almacenados</span><b style="color:#59e08a">Correcto</b></div>';
+  }
+
+  /* ---------- actualización general ---------- */
+  var tgt = { detenido: 0, ciudad: 38, carretera: 100 };
+  function tick(dt) {
+    S.uptime += dt;
+    var obd = S.obd === "on";
+    var tg = tgt[S.drive]; if (S.drive !== "detenido") tg += Math.sin(S.uptime / 3) * (S.drive === "ciudad" ? 18 : 6) + (R() - .5) * 4;
+    S.speed += (clamp(tg, 0, 140) - S.speed) * clamp(dt * .6, 0, 1);
+    S.rpm = S.speed < 1 ? 800 + R() * 30 : 900 + S.speed * 26 + (R() - .5) * 40;
+    S.temp += ((S.drive === "detenido" && S.uptime < 20 ? 62 : 89) - S.temp) * dt * .02 + (R() - .5) * .05;
+    S.fuel = clamp(S.fuel - dt * S.speed * .00012, 5, 100); S.batt = 14.2 + (R() - .5) * .1;
+    if (S.call) S.call.t += dt;
+    if (S.playing && S.track >= 0) { S.pos += dt; if (S.pos >= tracks[S.track].d) setTrack(S.track + 1); }
+    if (S.nav && S.nav.run) { S.nav.prog = clamp(S.nav.prog + dt * Math.max(S.speed, 30) / 3600 / S.nav.km * 6, 0, 1); if (S.nav.prog >= 1) S.nav.run = false; }
+    render(obd);
+  }
+  function render(obd) {
+    var d = new Date(); $("#clock").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()); $("#date").textContent = days[d.getDay()] + ", " + d.getDate() + " " + months[d.getMonth()];
+    $("#obdDot").className = "dot" + (obd ? "" : " off"); $("#obdTxt").textContent = obd ? "OBD2" : "OBD2 sin conectar";
+    $("#gEmpty").style.display = obd ? "none" : "grid"; $("#gsvg").style.opacity = obd ? 1 : .08;
+    if (obd) {
+      $("#gSpd").textContent = Math.round(S.speed); $("#gTemp").textContent = Math.round(S.temp); $("#gFuel").textContent = Math.round(S.fuel);
+      $("#gBat").innerHTML = S.batt.toFixed(1) + ' <tspan font-size="12" fill="#97a3c4">V</tspan>'; $("#gRpmT").innerHTML = Math.round(S.rpm / 10) * 10 + ' <tspan font-size="12" fill="#97a3c4">rpm</tspan>';
+      paintSeg("gt", (S.temp - 50) / 80, true); paintSeg("gf", S.fuel / 100, false);
+      var rh = clamp(S.rpm / 8000, 0, 1) * 150; $("#gRpm").setAttribute("y", 242 - rh); $("#gRpm").setAttribute("height", rh);
+    }
+    if ($("#ov-gauges").classList.contains("on")) {
+      $("#bsV").textContent = obd ? Math.round(S.speed) : "--"; $("#brV").textContent = obd ? (S.rpm / 1000).toFixed(1) : "--";
+      needle("bs", obd ? S.speed / 220 : 0); needle("br", obd ? S.rpm / 8000 : 0);
+      $("#bsT").textContent = obd ? Math.round(S.temp) + " °C" : "--"; $("#bsF").textContent = obd ? Math.round(S.fuel) + " %" : "--"; $("#bsB").textContent = obd ? S.batt.toFixed(1) + " V" : "--";
+    }
+    var night = isNight(); $("#stage").setAttribute("data-theme", night ? "night" : "day");
+    $("#hl").style.filter = night ? "drop-shadow(0 0 10px #fff7c8)" : "none"; $("#beams").setAttribute("opacity", night ? ".75" : "0");
+    if (S.uptime % 1 < .5) { updMusic(); if (S.nav) updNav(); if ($("#ov-diag").classList.contains("on")) updDiag(); if (S.call && $("#ov-phone").classList.contains("on")) updCall(); }
+  }
+
+  /* ---------- eventos ---------- */
+  var toastT; function toast(m) { var t = $("#toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(function () { t.style.display = "none"; }, 2200); }
+  function openOv(id) { $$(".ov").forEach(function (o) { o.classList.remove("on"); }); if (id) { $("#ov-" + id).classList.add("on"); if (id === "diag") updDiag(); if (id === "radio") updRadio(); if (id === "nav") updNav(); if (id === "music") updMusic(); if (id === "phone") updCall(); } }
+  function applyBg() { drawBg(); updWeather(); render(S.obd === "on"); }
+  function syncSettings() { $$("[data-set]").forEach(function (g) { var k = g.getAttribute("data-set"); $$("button", g).forEach(function (b) { b.classList.toggle("on", String(S[k]) === b.getAttribute("data-v")); }); }); }
+
+  function init() {
+    carFill(); buildGauges(); buildBig(); buildScale(); buildMap(); buildTracks(); buildForecast(); buildContacts();
+    var apps = [["nav", "Navegación", "#e0464f"], ["mus", "Música", "#27b57a"], ["rad", "Radios", "#ef8a2c"], ["tel", "Teléfono", "#3d7bff"], ["dia", "Diagnóstico", "#8b5cf6"], ["set", "Ajustes", "#1f9bd6"]];
+    var go = { nav: "nav", mus: "music", rad: "radio", tel: "phone", dia: "diag", set: "set" };
+    $("#dock").innerHTML = apps.map(function (a) { return '<button class="app" data-o="' + go[a[0]] + '"><span class="ico" style="background:' + a[2] + '">' + ic(a[0], 30) + "</span>" + a[1] + "</button>"; }).join("");
+    var keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"]; $("#keys").innerHTML = keys.map(function (k) { return '<button data-k="' + k + '">' + k + "</button>"; }).join("");
+    $("#dock").addEventListener("click", function (e) { var b = e.target.closest("[data-o]"); if (b) openOv(b.getAttribute("data-o")); });
+    $$("[data-close]").forEach(function (b) { b.addEventListener("click", function () { openOv(null); }); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") openOv(null); });
+    $("#gcard").addEventListener("click", function () { openOv("gauges"); }); $("#gcard").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openOv("gauges"); } });
+    $("#ncA").addEventListener("click", function () { openOv("nav"); }); $("#ncB").addEventListener("click", function () { openOv("nav"); });
+    $("#mPlay").addEventListener("click", togglePlay); $("#mvPlay").addEventListener("click", togglePlay);
+    $("#mPrev").addEventListener("click", function () { setTrack(S.track < 0 ? 0 : S.track - 1); }); $("#mvPrev").addEventListener("click", function () { setTrack(S.track < 0 ? 0 : S.track - 1); });
+    $("#mNext").addEventListener("click", function () { setTrack(S.track + 1); }); $("#mvNext").addEventListener("click", function () { setTrack(S.track + 1); });
+    function seek(e, id) { if (S.track < 0) return; var r = $(id).getBoundingClientRect(), sc = r.width / $(id).offsetWidth; S.pos = clamp((e.clientX - r.left) / r.width, 0, 1) * tracks[S.track].d; updMusic(); }
+    $("#mBar").addEventListener("click", function (e) { seek(e, "#mBar"); }); $("#mvBar").addEventListener("click", function (e) { seek(e, "#mvBar"); });
+    $("#rScope").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; S.scope = b.getAttribute("data-s"); var f = stations[S.scope].filter(function (x) { return !x.web; })[0].f; S.freq = f; updRadio(); });
+    $("#rPrev").addEventListener("click", function () { stepStation(-1); }); $("#rNext").addEventListener("click", function () { stepStation(1); });
+    $("#rPow").addEventListener("click", function () { S.radioOn = !S.radioOn; updRadio(); });
+    $("#rpresets").addEventListener("click", function (e) { var b = e.target.closest(".pre"); if (!b) return; var x = stations[S.scope][+b.getAttribute("data-i")]; if (x.web) { toast("Emisora por internet de ejemplo: no hay transmisión real en la demo"); return; } S.freq = x.f; S.radioOn = true; updRadio(); });
+    $("#rscale").addEventListener("click", function (e) { var r = $("#rscale").getBoundingClientRect(), fx = (e.clientX - r.left) / r.width * 896; S.freq = Math.round(clamp(88 + (fx - 24) / 848 * 20, 88, 108) * 10) / 10; S.radioOn = true; updRadio(); });
+    $("#dests").addEventListener("click", function (e) { var b = e.target.closest("[data-d]"); if (!b) return; var i = +b.getAttribute("data-d"); S.nav = { i: i, km: dest[i].km, prog: 0, run: false }; updNav(); });
+    $("#navGo").addEventListener("click", function () { if (S.nav) { S.nav.run = true; if (S.drive === "detenido") { S.drive = "ciudad"; syncSettings(); toast("Conducción simulada: ciudad"); } updNav(); } });
+    $("#navStop").addEventListener("click", function () { S.nav = null; updNav(); });
+    $("#contacts").addEventListener("click", function (e) { var b = e.target.closest("[data-c]"); if (b) startCall(contacts[+b.getAttribute("data-c")].n); });
+    $("#keys").addEventListener("click", function (e) { var b = e.target.closest("[data-k]"); if (b && S.dial.length < 14) { S.dial += b.getAttribute("data-k"); $("#dialNum").textContent = S.dial; } });
+    $("#dialDel").addEventListener("click", function () { S.dial = S.dial.slice(0, -1); $("#dialNum").innerHTML = S.dial || "&nbsp;"; });
+    $("#dialGo").addEventListener("click", function () { if (!S.dial) { toast("Ingrese un número"); return; } startCall(S.dial); S.dial = ""; $("#dialNum").innerHTML = "&nbsp;"; });
+    $("#callEnd").addEventListener("click", function () { S.call = null; updCall(); });
+    $$("[data-set]").forEach(function (g) { g.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; var k = g.getAttribute("data-set"), v = b.getAttribute("data-v"); S[k] = k === "seed" ? +v : v; if (k === "seed") { R = mulberry(S.seed); V = mulberry(7 + S.seed); buildForecast(); buildTracks(); buildContacts(); buildMap(); S.track = -1; S.playing = false; S.nav = null; } applyBg(); syncSettings(); updMusic(); if (S.nav !== undefined) updNav(); }); });
+    var q = new URLSearchParams(location.search), h = location.hash.replace("#", "");
+    ["theme", "weather", "drive", "obd", "dtc"].forEach(function (k) { if (q.get(k)) S[k] = q.get(k); });
+    if (q.get("play") === "1") { S.track = 0; S.playing = true; S.pos = 42; }
+    if (q.get("nav") === "1") { S.nav = { i: 0, km: dest[0].km, prog: .3, run: true }; }
+    if (q.get("seed")) { S.seed = +q.get("seed"); }
+    drawBg(); updWeather(); syncSettings(); for (var i = 0; i < 40; i++) tick(.5); updMusic(); updNav();
+    if (h) openOv(h);
+    fit(); window.addEventListener("resize", fit);
+    var last = performance.now(); setInterval(function () { var n = performance.now(); tick(Math.min((n - last) / 1000, 1)); last = n; }, 250);
+    setInterval(function () { drawBg(); updWeather(); }, 60000);
+    requestAnimationFrame(rainFrame);
+  }
+  function carFill() { $("#car").innerHTML = carSvg(); }
+  function fit() { var w = $("#wrap"), sc = Math.min(w.clientWidth / 1024, w.clientHeight / 600); var st = $("#stage"); st.style.transform = "scale(" + sc + ")"; st.style.left = Math.max(0, (w.clientWidth - 1024 * sc) / 2) + "px"; st.style.top = Math.max(0, (w.clientHeight - 600 * sc) / 2) + "px"; }
+  init();
+})();
+</script>
+</body>
+</html>

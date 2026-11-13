@@ -13,6 +13,15 @@ Developed by Axel Hernán González, with AI assistance and a spec-driven workfl
 | [`launcher/`](launcher) | Home-screen launcher for the car's Android head unit: weather, music, FM radio over the internet, navigation, OBD2 diagnostics | Kotlin, Jetpack Compose, MapLibre | AGPL-3.0 |
 | [`garage/`](garage) | Companion app for maintenance, fuel, tires and daily trips, with live OBD2 data over Bluetooth (ELM327) | Kotlin, Jetpack Compose, Room, Car App Library | MIT |
 
+## Live demo
+
+**[Open the interactive demo](https://agonzalez-97.github.io/HeadUnitLite/)**: a visual mock-up of the launcher with **fictitious data** generated in the browser. It is a single `docs/index.html` file with no dependencies and no network requests, and it uses its own drawn vehicle and no third-party brands. The demo is released under the MIT license (`docs/LICENSE`).
+
+| | |
+|---|---|
+| ![Home, day](docs/screenshots/1-inicio-dia.png) | ![Home, night and rain](docs/screenshots/2-inicio-noche-lluvia.png) |
+| ![FM radio](docs/screenshots/3-radio.png) | ![Instrument cluster](docs/screenshots/4-tablero.png) |
+
 ## Roadmap
 
 - Vehicle profiles (one config file per car) instead of values tied to the Onix.

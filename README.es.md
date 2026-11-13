@@ -13,6 +13,15 @@ Desarrollado por Axel Hernán González, con asistencia de IA y un flujo guiado 
 | [`launcher/`](launcher) | Launcher para la pantalla de inicio de la radio del auto: clima, música, radio FM por internet, navegación y diagnóstico OBD2 | Kotlin, Jetpack Compose, MapLibre | AGPL-3.0 |
 | [`garage/`](garage) | App compañera para mantenimiento, nafta, neumáticos y viajes diarios, con datos OBD2 en vivo por Bluetooth (ELM327) | Kotlin, Jetpack Compose, Room, Car App Library | MIT |
 
+## Demo en vivo
+
+**[Abrir la demo interactiva](https://agonzalez-97.github.io/HeadUnitLite/)**: una maqueta visual del launcher con **datos ficticios** generados en el navegador. Es un único archivo `docs/index.html`, sin dependencias ni pedidos de red, con un vehículo dibujado propio y sin marcas de terceros. La demo se publica bajo licencia MIT (`docs/LICENSE`).
+
+| | |
+|---|---|
+| ![Inicio de día](docs/screenshots/1-inicio-dia.png) | ![Inicio de noche con lluvia](docs/screenshots/2-inicio-noche-lluvia.png) |
+| ![Radio FM](docs/screenshots/3-radio.png) | ![Tablero](docs/screenshots/4-tablero.png) |
+
 ## Roadmap
 
 - Perfiles de vehículo (un archivo de configuración por auto) en lugar de valores atados al Onix.
