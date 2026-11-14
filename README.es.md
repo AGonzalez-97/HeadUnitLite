@@ -19,6 +19,8 @@ Desarrollado por Axel Hernán González, con asistencia de IA y un flujo guiado 
 | [`launcher/`](launcher) | Launcher para la pantalla de inicio de la radio del auto: clima, música, radio FM por internet, navegación y diagnóstico OBD2 | Kotlin, Jetpack Compose, MapLibre | AGPL-3.0 |
 | [`garage/`](garage) | App compañera para mantenimiento, nafta, neumáticos y viajes diarios, con datos OBD2 en vivo por Bluetooth (ELM327) | Kotlin, Jetpack Compose, Room, Car App Library | MIT |
 
+El archivo `LICENSE` de la raíz (MIT) cubre todo lo que está fuera de `launcher/` y `garage/`, como la demo de `docs/` y los README. Cada carpeta conserva su propia licencia.
+
 ## Demo en vivo
 
 **[Abrir la demo interactiva](https://agonzalez-97.github.io/HeadUnitLite/)**: una maqueta visual del launcher con **datos ficticios** generados en el navegador. Es un único archivo `docs/index.html`, sin dependencias ni pedidos de red, con un vehículo dibujado propio y sin marcas de terceros. La demo se publica bajo licencia MIT (`docs/LICENSE`).
