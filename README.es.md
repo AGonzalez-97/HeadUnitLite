@@ -2,6 +2,12 @@
 
 [English](README.md) · **Español**
 
+![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.02.01-4285F4?logo=jetpackcompose&logoColor=white)
+![Android](https://img.shields.io/badge/Launcher-Android%207.1%2B%20%28API%2025%29-3DDC84?logo=android&logoColor=white)
+![Licencia](https://img.shields.io/badge/Licencia-AGPL--3.0%20%28launcher%29%20%C2%B7%20MIT%20%28garage%29-blue)
+![Proyecto](https://img.shields.io/badge/Proyecto-personal%20de%20pasatiempo-8A8F98)
+
 Un launcher liviano y una app compañera para radios (head units) Android. Hoy soporta un solo vehículo, un Chevrolet Onix Joy 2018; el soporte para otros autos y radios está en el roadmap, todavía no está implementado.
 
 **Este es un proyecto personal de pasatiempo**, hecho por gusto y para aprender, no un producto comercial. No está afiliado a General Motors ni a Chevrolet.

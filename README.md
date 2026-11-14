@@ -2,6 +2,12 @@
 
 **English** · [Español](README.es.md)
 
+![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.02.01-4285F4?logo=jetpackcompose&logoColor=white)
+![Android](https://img.shields.io/badge/Launcher-Android%207.1%2B%20%28API%2025%29-3DDC84?logo=android&logoColor=white)
+![License](https://img.shields.io/badge/License-AGPL--3.0%20%28launcher%29%20%C2%B7%20MIT%20%28garage%29-blue)
+![Project](https://img.shields.io/badge/Project-personal%20hobby-8A8F98)
+
 A lightweight launcher and companion app for Android head units. Today it supports one vehicle, a 2018 Chevrolet Onix Joy; support for other cars and head units is on the roadmap, not implemented yet.
 
 **This is a personal hobby project** built for fun and learning, not a commercial product. It is not affiliated with General Motors or Chevrolet.
